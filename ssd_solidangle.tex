@@ -1,0 +1,39 @@
+\documentclass{article}
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{here}
+
+\title{README for ssd\_solidangle.cpp}
+\author{N. Ozawa}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+This is a script to 1. Calculate the $\alpha$ detection efficiency of the beam profile monitor and 2. Find the optimum geometry parameters $z_0$ and $x_0$ that maximizes the detection efficiency. Here, "detection efficiency" is defined as the percentage of particles that hit the SSD which are emitted from the surface of the MCP/mesh. 
+
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=8.0cm]{./MCP_caption.png}
+    \caption{The planned design for the beam profile monitor.}
+    \label{fig:MCP_caption}
+  \end{center}
+\end{figure}
+
+Figure \ref{fig:MCP_caption} depicts the design of the beam profile monitor. The plate in the center (height $M_H$ and width $M_W$) is the topmost plate holding the MCP. A metal mesh covers this plate which catches the incoming Fr beam. The $\alpha$ particles emitted from the Fr are assumed to emerge from the surface of the plate $\left\{ (x_M,\ y_M,\ z_M)\ |\ x_M = 0,\ -\frac{M_W}{2} \le y_M \le \frac{M_W}{2},\ z_0-\frac{M_H}{2} \le z_M \le z_0+\frac{M_H}{2}\ \right\}$ following the quasi-Gaussian distribution $(X_c, Y_c, \sigma_x, \sigma_y)$ given by the beam simulations. Here, $z_0$ is the distance between the center of the mesh and the lower surface of the lid of the box holding the SSD. The $\alpha$ particle is assumed to be emitted in random directions $\vec{a_M} = (a_x,\ a_y,\ a_z)$, $a_x \ge 0$ from the surface, following a uniform half-sphere direction distribution. \\
+
+The SSD is placed inside the box in the lower right corner in figure \ref{fig:MCP_caption}. A hole of diameter $2R_{{\rm SSD}}$ in the lid of thickness $z_l$ is the entrance for $\alpha$ rays to be detected by the SSD. In the current coordinates, the upper surface of the lid is defined as $\left\{ (x_{lu},\ y_{lu},\ z_{lu})\ |\ z_{lu} = z_l,\ (x_lu - x_0)^2 + y_lu^2 > R_{{\rm SSD}}^2 \right\}$ and the lower surface as $\left\{ (x_{ll},\ y_{ll},\ z_{ll})\ |\ z_{ll} = 0,\ (x_{ll} - x_0)^2 + y_{ll}^2 < R_{{\rm SSD}}^2 \right\}$. Here $x_0$ is the distance between the mesh and the center of the hole in the lid.\\
+
+In this setup, the geometrical parameters $z_0$ and $x_0$ can be adjusted to yield the maximum detection efficiency. In order to analyze this, a method of calculating the detection efficiency is developed in the following way. Note that this method only considers the $\alpha$ particles emitted from the surface of the mesh in the direction of the incoming beam, and enters the SSD box. It does not consider the efficiency of the Fr ions being captured at the mesh, and the detection efficiency of the detector for the $\alpha$ particles that entered the box.\\
+
+For each particle:
+\begin{enumerate}
+	\item Set point $\vec{P} = (0,\ y_M,\ z_M)$ following a Gaussian random distribution $(X_c,\ Y_c,\ \sigma_X,\ \sigma_Y)$ within $-\frac{M_W}{2} \le y_M \le \frac{M_W}{2}$ and $z_0-\frac{M_H}{2} \le z_M \le z_0+\frac{M_H}{2}$ as starting point of the $\alpha$ particle.
+	\item Set direction of $\alpha$ particle as $\vec{a_M} = (a_x,\ a_y,\ a_z)$ with $a_x$ as a non-negative random number, and $a_y$ and $a_z$ as random numbers.
+	\item Define $t_u = \frac{z_l - z_M}{a_z}$ so that $\vec{P} + t_u \vec{a_M}$ is on the surface $z = z_l$ i.e. the upper surface of the lid of the SSD box. Similarly, define $t_l = -\frac{z_M}{a_z}$ so that $\vec{P} + t_l \vec{a_M}$ is on the surface $z = 0$ i. e. the lower surface of the lid.
+	\item Define $x_{lu} = t_u a_x$, $y_{lu} = y_M + t_u a_y$, $x_{ll} = t_l a_x$, and $y_{ll} = y_M + t_l a_y$. The $\alpha$ particle passes the upper surface of the lid at point $(x_{lu},\ y_{lu},\ z_l)$ and the lower surface of the lid at point $(x_{ll},\ y_{ll},\ 0)$. 
+	\item If $(x_{lu} - x_0)^2 + y_{lu}^2 > R_{{\rm SSD}}^2$, the $\alpha$ particle hits the upper lid and does not reach the SSD. Similarly, if $(x_{ll} - x_0)^2 + y_{ll}^2 > R_{{\rm SSD}}^2$, the $\alpha$ particle hits the lid and does not reach the SSD.
+\end{enumerate}
+Repeat for all the $N_{Fr}$ particles defined and count the number $N_{Detected}$ of them that reached the SSD. The detection efficiency $\varepsilon_i$ for this set $i$ of $N_{Fr}$ particles is defined as $\varepsilon_i = \frac{N_{Detected}}{N_{Fr}}$. This value is expected to be sample-dependent, since the particle positions and directions are randomly selected. In order to obtain a more reliable value, the average of $N_{Average}$ samples is calculated as the final detection efficiency: $\varepsilon = \sum_{i=1}^{N_{Average}} \varepsilon_i$.
+
+\end{document}
