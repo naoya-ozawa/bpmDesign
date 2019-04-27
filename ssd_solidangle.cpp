@@ -5,7 +5,7 @@ using namespace std;
 
 
 // Detection efficiency of the SSD
-double efficiency(int N_Fr, int N_Average, double z_l, double R_SSD, double M_H, double M_W, double z_0, double x_0){
+double efficiency(int N_Fr, int N_Average, double z_l, double R_SSD, double M_H, double M_W, double centerX, double stdevX, double centerY, double stdevY, double z_0, double x_0){
 
 	double detection = 0.0;
 
@@ -20,8 +20,8 @@ double efficiency(int N_Fr, int N_Average, double z_l, double R_SSD, double M_H,
 	uniform_real_distribution<> randhalf(0.,1.);
 	uniform_real_distribution<> randall(-1.,1.);
 
-	uniform_real_distribution<> randy(y_M_ll,y_M_ul);
-	uniform_real_distribution<> randz(z_M_ll,z_M_ul);
+	normal_distribution<> randy(centerX,stdevX);
+	normal_distribution<> randz(centerY,stdevY);
 
 	for (int j = 0; j < N_Average; j++){
 
@@ -31,16 +31,21 @@ double efficiency(int N_Fr, int N_Average, double z_l, double R_SSD, double M_H,
 
 			// Define Fr on MESH
 			double y_M = randy(engine);
+			while ((y_M < y_M_ll)||(y_M_ul < y_M)){
+				y_M = randy(engine);
+			}
 			double z_M = randz(engine);
+			while ((z_M < z_M_ll)||(z_M_ul < z_M)){
+				z_M = randy(engine);
+			}
 
 			// Define alpha emitted direction
-			double a_x = 0.0;
-			while (a_x == 0.0){
-				a_x = randhalf(engine);
-			}
+			double a_x = randhalf(engine);
 			double a_y = randall(engine);
 			double a_z = randall(engine);
-		
+			while (a_z == 0.0){
+				a_z = randall(engine);
+			}
 
 			// Check if alpha hits upper lid
 			double t_u = (z_l - z_M)/a_z;
@@ -85,15 +90,22 @@ int main(){
 	double R_SSD = 6.5;
 	double M_H = 70.0;
 	double M_W = 70.0;
-	
+
+	// Based on SIMION simulation	
+	double centerX = 0.0;
+	double centerY = 0.0;
+	double stdevX = 5.0;
+	double stdevY = 1.5;
+	cout << "Fr distribution = Nx(" << centerX << ", " << stdevX << ") X Ny(" << centerY << ", " << stdevY << ")" << endl;
+
+	// Geometrical variable of the BPM
 	double z_0 = 26.0;
 	double x_0 = 26.0;
 
-//	cout << "Geometry z_0 = " << z_0 << " mm, x_0 = " << x_0 << " mm." << endl;
 
 	cout << "For z_0 = " << z_0 << " mm, x_0 = " << x_0 << " mm: ";
 
-	double eff = efficiency(N_Fr, N_Average, z_l, R_SSD, M_H, M_W, z_0, x_0);
+	double eff = efficiency(N_Fr, N_Average, z_l, R_SSD, M_H, M_W, centerX, stdevX, centerY, stdevY, z_0, x_0);
 
 	cout << eff << "% detection." << endl;
 
