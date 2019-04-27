@@ -1,5 +1,10 @@
 #include <iostream>
 #include <random>
+#include <TH2D.h>
+#include <TGraphErrors.h>
+#include <TGraph2D.h>
+#include <TCanvas.h>
+#include <TRint.h>
 
 using namespace std;
 
@@ -21,7 +26,7 @@ double efficiency(int N_Fr, int N_Average, double z_l, double R_SSD, double M_H,
 	uniform_real_distribution<> randall(-1.,1.);
 
 	normal_distribution<> randy(centerX,stdevX);
-	normal_distribution<> randz(centerY,stdevY);
+	normal_distribution<> randz(centerY+z_0,stdevY);
 
 	for (int j = 0; j < N_Average; j++){
 
@@ -36,7 +41,7 @@ double efficiency(int N_Fr, int N_Average, double z_l, double R_SSD, double M_H,
 			}
 			double z_M = randz(engine);
 			while ((z_M < z_M_ll)||(z_M_ul < z_M)){
-				z_M = randy(engine);
+				z_M = randz(engine);
 			}
 
 			// Define alpha emitted direction
@@ -77,8 +82,11 @@ double efficiency(int N_Fr, int N_Average, double z_l, double R_SSD, double M_H,
 
 
 
-int main(){
+int main(int argc, char** argv){
 
+	TRint rootapp("app",&argc,argv);
+
+	TCanvas *c1 = new TCanvas();
 
 	int N_Fr = 10000;
 	int N_Average = 1000;
@@ -99,16 +107,41 @@ int main(){
 	cout << "Fr distribution = Nx(" << centerX << ", " << stdevX << ") X Ny(" << centerY << ", " << stdevY << ")" << endl;
 
 	// Geometrical variable of the BPM
-	double z_0 = 26.0;
-	double x_0 = 26.0;
+	double z_0_mean = 26.0;
+	double x_0_mean = 26.0;
 
+	// For (z_0,x_0) optimization
+	double halfwidth = 15.0;
+	double delta = 5.0;
+	int step1d = round(2*halfwidth/delta + 1);
+	TGraph2D *zx = new TGraph2D(step1d*step1d);
+	zx->SetTitle("Geometrical Detection Efficiency; z_{0} (mm); x_{0} (mm); Efficiency (%)");
+	
+	double eff = 0.0;
 
-	cout << "For z_0 = " << z_0 << " mm, x_0 = " << x_0 << " mm: ";
+	double z_0 = z_0_mean - halfwidth;
+	double x_0 = x_0_mean - halfwidth;
 
-	double eff = efficiency(N_Fr, N_Average, z_l, R_SSD, M_H, M_W, centerX, stdevX, centerY, stdevY, z_0, x_0);
+	for (int k = 0; k < step1d; ++k){
+		for (int l = 0; l < step1d; ++l){
+			eff = efficiency(N_Fr, N_Average, z_l, R_SSD, M_H, M_W, centerX, stdevX, centerY, stdevY, z_0, x_0);
 
-	cout << eff << "% detection." << endl;
+//			printf("(z_0, x_0) = (%f, %f) mm : %f %% detection\r",z_0,x_0,eff);
+			cout << "(z_0, x_0) = (" << z_0 << ", " << x_0 << ") mm: " << eff << "% detection" << endl;
 
+			zx->SetPoint(k*step1d+l,z_0,x_0,eff);
+			x_0 += delta;
+		}
+		x_0 = x_0_mean - halfwidth;
+		z_0 += delta;
+	}
+
+	zx->Draw("SURF1");
+
+	c1->Update();
+	c1->Modified();
+
+	rootapp.Run();
 
 	return 0;
 }
