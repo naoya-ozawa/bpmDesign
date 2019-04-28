@@ -10,7 +10,11 @@
 
 \maketitle
 
-This is a script to 1. Calculate the $\alpha$ detection efficiency of the beam profile monitor and 2. Find the optimum geometry parameters $z_0$ and $x_0$ that maximizes the detection efficiency. Here, "detection efficiency" is defined as the percentage of particles that hit the SSD which are emitted from the surface of the MCP/mesh. 
+This is a script to 1. Calculate the $\alpha$ detection efficiency of the beam profile monitor and 2. Find the optimum geometry parameters $z_0$ and $x_0$ that maximizes the detection efficiency. Here, "detection efficiency" is defined as the percentage of particles that hit the SSD which are emitted from the surface of the MCP/mesh. In the general literature, "detection efficiency" would be defined as the fraction of $\alpha$ particles that generate a detectable signal at the Si detector out of the number of Fr ions that reached the surface of the MCP/mesh. In our particular case, this efficiency $\varepsilon_{tot}$ could be factorized in the following way:
+\begin{eqnarray*}
+\varepsilon_{tot} & = & \varepsilon_{mesh} \varepsilon_{decay} \varepsilon_{direction} \varepsilon_{geometry} \varepsilon_{detection}
+\end{eqnarray*}
+where $\varepsilon_{mesh}$ is the probability that the incoming Fr ion is captured on the mesh surface, $\varepsilon_{decay}$ is the average ratio of Fr ions that decay and emit an $\alpha$ particle, $\varepsilon_{direction} = \frac{1}{2}$ is the ratio of $\alpha$ particles that are emitted in the beamline upstream direction rather than the downstream direction which would be undetectable with the SSD, $\varepsilon_{geometry}$ is the ratio of $\alpha$ particles that enter the SSD holder/box out of the ones that were emitted in the upstream direction, and $\varepsilon_{detection}$ is the ratio of $\alpha$ particles that generate a signal which depends on the detector characteristics. In the script ssd\_solidangle.cpp, only $\varepsilon_{geometry}$ is calculated. This is nearly equivalent to the solid angle $\Omega$ of the hole opened on the lid of the SSD holder/box observed from the center of the MCP. Since the hole is off-axis with respect to the MCP center, it is approximated with $\Omega = 2\pi (1 - \cos{\theta})$, $\cos{\theta} \approx \frac{\sqrt{{z_0}^2+{x_0}^2 }}{\sqrt{\left(\frac{R_{SSD}}{\sqrt{2}}\right)^2 + {z_0}^2 + {x_0}^2}}$. The factor $\sqrt{2}$ for the $R_{SSD}$ is used to approximate the off-axis solid angle with a 45 degree tilt. The meaning of each parameter is to be referenced below. \\
 
 \begin{figure}[H]
   \begin{center}

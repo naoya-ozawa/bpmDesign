@@ -1,5 +1,6 @@
 #include <iostream>
 #include <random>
+#include <TMath.h>
 #include <TH2D.h>
 #include <TGraphErrors.h>
 #include <TGraph2D.h>
@@ -7,6 +8,20 @@
 #include <TRint.h>
 
 using namespace std;
+
+
+// Simple solid angle for reference
+double solidangle(double z_0, double x_0, double R_SSD){
+
+	double adj = TMath::Sqrt(z_0*z_0 + x_0*x_0);
+	double opp = R_SSD/TMath::Sqrt(2.0);
+	double hyp = TMath::Sqrt(adj*adj + opp*opp);
+
+	double cosine = adj/hyp;
+	double Sr = 2.0 * TMath::Pi() *  (1.0 - cosine);
+
+	return Sr;
+}
 
 
 // Detection efficiency of the SSD
@@ -111,23 +126,22 @@ int main(int argc, char** argv){
 	double x_0_mean = 26.0;
 
 	// For (z_0,x_0) optimization
-	double halfwidth = 15.0;
+	double halfwidth = 5.0;
 	double delta = 5.0;
 	int step1d = round(2*halfwidth/delta + 1);
 	TGraph2D *zx = new TGraph2D(step1d*step1d);
 	zx->SetTitle("Geometrical Detection Efficiency; z_{0} (mm); x_{0} (mm); Efficiency (%)");
-	
-	double eff = 0.0;
+
 
 	double z_0 = z_0_mean - halfwidth;
 	double x_0 = x_0_mean - halfwidth;
 
 	for (int k = 0; k < step1d; ++k){
 		for (int l = 0; l < step1d; ++l){
-			eff = efficiency(N_Fr, N_Average, z_l, R_SSD, M_H, M_W, centerX, stdevX, centerY, stdevY, z_0, x_0);
-
+			double eff = efficiency(N_Fr, N_Average, z_l, R_SSD, M_H, M_W, centerX, stdevX, centerY, stdevY, z_0, x_0);
+			double geoeff = 100.*solidangle(z_0,x_0,R_SSD)/(2.0*TMath::Pi());
 //			printf("(z_0, x_0) = (%f, %f) mm : %f %% detection\r",z_0,x_0,eff);
-			cout << "(z_0, x_0) = (" << z_0 << ", " << x_0 << ") mm: " << eff << "% detection" << endl;
+			cout << "(z_0, x_0) = (" << z_0 << ", " << x_0 << ") mm: " << eff << "% detection / Approx. (Sol. Ang./2pi) = " << geoeff << "%" << endl;
 
 			zx->SetPoint(k*step1d+l,z_0,x_0,eff);
 			x_0 += delta;
