@@ -19,7 +19,7 @@ int main(int argc, char** argv){
 	TCanvas *c1 = new TCanvas();
 //	c1->Divide(2,1);
 
-	int N_Fr = 1000;
+	int N_Fr = 100000;
 	cout << "Flying " << N_Fr << " alpha particles from the mesh." << endl;
 
 	double z_l = 1.0;
@@ -37,7 +37,7 @@ int main(int argc, char** argv){
 
 	// Geometrical variable of the BPM
 	double z_0 = 26.0;
-	double x_0 = 26.0;
+	double x_0 = 20.0;
 	cout << "z_0 = " << z_0 << " mm, x_0 = " << x_0 << " mm" << endl;
 
 
