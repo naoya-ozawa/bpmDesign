@@ -102,6 +102,7 @@ int main(int argc, char** argv){
 	TRint rootapp("app",&argc,argv);
 
 	TCanvas *c1 = new TCanvas();
+	c1->Divide(2,1);
 
 	int N_Fr = 10000;
 	int N_Average = 1000;
@@ -130,8 +131,12 @@ int main(int argc, char** argv){
 	double delta = 5.0;
 	int step1d = round(2*halfwidth/delta + 1);
 	TGraph2D *zx = new TGraph2D(step1d*step1d);
-	zx->SetTitle("Geometrical Detection Efficiency; z_{0} (mm); x_{0} (mm); Efficiency (%)");
+	zx->SetName("zx");
+	zx->SetTitle("Simulated Geometrical Detection Efficiency; z_{0} (mm); x_{0} (mm); #varepsilon_{geometry} (%)");
 
+	TGraph2D *sa = new TGraph2D(step1d*step1d);
+	sa->SetName("sa");
+	sa->SetTitle("Approx. Acceptance based on Solid Angle; z_{0} (mm); x_{0} (mm); #Omega/(2#pi) (%)");
 
 	double z_0 = z_0_mean - halfwidth;
 	double x_0 = x_0_mean - halfwidth;
@@ -144,13 +149,23 @@ int main(int argc, char** argv){
 			cout << "(z_0, x_0) = (" << z_0 << ", " << x_0 << ") mm: " << eff << "% detection / Approx. (Sol. Ang./2pi) = " << geoeff << "%" << endl;
 
 			zx->SetPoint(k*step1d+l,z_0,x_0,eff);
+			sa->SetPoint(k*step1d+l,z_0,x_0,geoeff);
 			x_0 += delta;
 		}
 		x_0 = x_0_mean - halfwidth;
 		z_0 += delta;
 	}
 
+
+	// Draw
+
+	c1->cd(1);
+	// The simulated eff_geometry based on the 2D-Gaussian emittance on the mesh
 	zx->Draw("SURF1");
+
+
+	c1->cd(2);
+	sa->Draw("SURF1");
 
 	c1->Update();
 	c1->Modified();
