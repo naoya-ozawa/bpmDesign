@@ -37,8 +37,7 @@ double efficiency(int N_Fr, int N_Average, double z_l, double R_SSD, double M_H,
 	random_device rnd;
 	default_random_engine engine(rnd());
 
-	uniform_real_distribution<> randhalf(0.,1.);
-	uniform_real_distribution<> randall(-1.,1.);
+	normal_distribution<> randnorm(0.,1.);
 
 	normal_distribution<> randy(centerX,stdevX);
 	normal_distribution<> randz(centerY+z_0,stdevY);
@@ -60,11 +59,14 @@ double efficiency(int N_Fr, int N_Average, double z_l, double R_SSD, double M_H,
 			}
 
 			// Define alpha emitted direction
-			double a_x = randhalf(engine);
-			double a_y = randall(engine);
-			double a_z = randall(engine);
+			double a_x = randnorm(engine);
+			while (a_x <= 0.0){
+				a_x = randnorm(engine);
+			}
+			double a_y = randnorm(engine);
+			double a_z = randnorm(engine);
 			while (a_z == 0.0){
-				a_z = randall(engine);
+				a_z = randnorm(engine);
 			}
 
 			// Check if alpha hits upper lid

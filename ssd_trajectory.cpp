@@ -124,8 +124,7 @@ int main(int argc, char** argv){
 	random_device rnd;
 	default_random_engine engine(rnd());
 
-	uniform_real_distribution<> randhalf(0.,1.);
-	uniform_real_distribution<> randall(-1.,1.);
+	normal_distribution<> randnorm(0.,1.);
 
 	normal_distribution<> randy(centerX,stdevX);
 	normal_distribution<> randz(centerY+z_0,stdevY);
@@ -144,11 +143,14 @@ int main(int argc, char** argv){
 			}
 
 			// Define alpha emitted direction
-			double a_x = randhalf(engine);
-			double a_y = randall(engine);
-			double a_z = randall(engine);
+			double a_x = randnorm(engine);
+			while (a_x <= 0.0){
+				a_x = randnorm(engine);
+			}
+			double a_y = randnorm(engine);
+			double a_z = randnorm(engine);
 			while (a_z == 0.0){
-				a_z = randall(engine);
+				a_z = randnorm(engine);
 			}
 
 			// Check if alpha hits upper lid
@@ -198,7 +200,7 @@ int main(int argc, char** argv){
 
 	cout << detection << "% entered the SSD holder." << endl;
 
-	traj->Draw("SAME P0");
+	traj->Draw("SAME,P0,ah,fb,bb");
 	traj->GetXaxis()->SetLimits(-5.,x_0+R_SSD+5.);
 	traj->GetYaxis()->SetLimits(-M_W/2.0-5.,M_W/2.0+5.);
 	traj->GetZaxis()->SetLimits(-5.,M_H+5.);
