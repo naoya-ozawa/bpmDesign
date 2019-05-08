@@ -33,7 +33,7 @@ In this setup, the geometrical parameters $z_0$ and $x_0$ can be adjusted to yie
 For each particle:
 \begin{enumerate}
 	\item Set point $\vec{P} = (0,\ y_M,\ z_M)$ following a Gaussian random distribution $(X_c,\ Y_c,\ \sigma_X,\ \sigma_Y)$ as $y_M \sim N(X_c,\ \sigma_X)$ and $z_M \sim N(z_0+Y_c,\ \sigma_Y)$, constrained within $-\frac{M_W}{2} \le y_M \le \frac{M_W}{2}$ and $z_0-\frac{M_H}{2} \le z_M \le z_0+\frac{M_H}{2}$ as starting point of the $\alpha$ particle.
-	\item Set direction of $\alpha$ particle as $\vec{a_M} = (a_x,\ a_y,\ a_z)$ with $a_x$ as a non-negative random number, and $a_y$ and $a_z$ as random numbers.
+	\item Set direction of $\alpha$ particle as $\vec{a_M} = (a_x,\ a_y,\ a_z)$ with $a_x$ as a non-negative random number, and $a_y$ and $a_z$ as random numbers. The random numbers are generated following a normal distribution.
 	\item Define $t_u = \frac{z_l - z_M}{a_z}$ so that $\vec{P} + t_u \vec{a_M}$ is on the surface $z = z_l$ i.e. the upper surface of the lid of the SSD box. Similarly, define $t_l = -\frac{z_M}{a_z}$ so that $\vec{P} + t_l \vec{a_M}$ is on the surface $z = 0$ i. e. the lower surface of the lid.
 	\item Define $x_{lu} = t_u a_x$, $y_{lu} = y_M + t_u a_y$, $x_{ll} = t_l a_x$, and $y_{ll} = y_M + t_l a_y$. The $\alpha$ particle passes the upper surface of the lid at point $(x_{lu},\ y_{lu},\ z_l)$ and the lower surface of the lid at point $(x_{ll},\ y_{ll},\ 0)$. 
 	\item If $(x_{lu} - x_0)^2 + y_{lu}^2 > R_{{\rm SSD}}^2$, the $\alpha$ particle hits the upper lid and does not reach the SSD. Similarly, if $(x_{ll} - x_0)^2 + y_{ll}^2 > R_{{\rm SSD}}^2$, the $\alpha$ particle hits the lid and does not reach the SSD.
@@ -41,6 +41,73 @@ For each particle:
 Repeat for all the $N_{Fr}$ particles defined and count the number $N_{Detected}$ of them that reached the SSD. The detection efficiency $\varepsilon_i$ for this set $i$ of $N_{Fr}$ particles is defined as $\varepsilon_i = \frac{N_{Detected}}{N_{Fr}}$. This value is expected to be sample-dependent, since the particle positions and directions are randomly selected. In order to obtain a more reliable value, the average of $N_{Average}$ samples is calculated as the final detection efficiency: $\varepsilon = \sum_{i=1}^{N_{Average}} \varepsilon_i$. \\
 
 In the code, the value of $\varepsilon$ is calculated for various combinations of $z_0$ and $x_0$. For the TOF-BPM at CYRIC, $z_0 = 29$ mm and $x_0 = 33$ mm.
+
+
+
+
+
+\subsubsection*{Footnote: Generating Random Trajectories}
+In the code, random trajectories are defined by giving a random "starting point" 
+$$
+\vec{P_0} = \left(
+\begin{array}{c}
+	0 \\
+	y_M \\
+	z_M
+\end{array} \right)
+$$
+and a random "direction" 
+$$
+\vec{d} = \left(
+\begin{array}{c}
+	a_x \\
+	a_y \\
+	a_z
+\end{array} \right)
+$$
+so that using some parameter $t$, $\vec{P_0} + t\vec{d}$ creates a trajectory of the emitted $\alpha$ particle. Based on the Fr ion simulations, $y_M$ and $z_M$ are assumed to follow a normal distribution. $\vec{d}$ is then given randomly, so that the direction is uniformly distributed on a half-sphere surface in the beamline upstream direction. This could be done by selecting the parameters $a_x$, $a_y$, and $a_z$ randomly, following a normal distribution\cite{Muller1959}. This could be understood in the following way. \\
+
+Suppose $a_x$, $a_y$, and $a_z$ are all generated following a normal distribution
+$$
+N_k(0,\ R) = \frac{1}{\sqrt{2\pi}R}\exp{\left(-\frac{{a_k}^2}{2R^2}\right)}\, \, \, \, \, (k = x, y, z)
+$$
+with some positive number $R$. Since all three parameters are individually determined, the set of numbers $(a_x, a_y, a_z)$ are generated following a 3D normal distribution
+$$
+N_x(0,\ R) N_y(0,\ R) N_z(0,\ R) = \frac{1}{(2\pi)^\frac{3}{2} R^3} \exp{\left(-\frac{{a_x}^2 + {a_y}^2 + {a_z}^2}{2R^2}\right)}.
+$$
+When we take a sample sphere of ${a_x}^2 + {a_y}^2 + {a_z}^2 = r^2$ where $r$ is some constant, the distribution itself becomes a constant, which corresponds to a uniform distribution over the 3D spherical surface of radius $r$. \\
+
+This is not the case when $\vec{d}$ is generated using uniformly distributed random numbers. Suppose $a_x$,$a_y$, and $a_z$ are generated following a uniform distribution
+$$
+U_k(0,\ R) = \left\{
+\begin{array}{ll}
+	\frac{1}{2R} & (-R \le a_k \le R) \\
+	0 & ({\rm otherwise})
+\end{array} \right. \, \, \, \, \, (k = x, y, z).
+$$
+Following the same method as above, the set of numbers $(a_x, a_y, a_z)$ follow the distribution
+$$
+U_x(0,\ R) U_y(0,\ R) U_z(0,\ R) = \left\{
+\begin{array}{ll}
+	\frac{1}{8R^3} & \left( (-R \le a_x \le R) \cap (-R \le a_y \le R) \cap (-R \le a_z \le R) \right) \\
+	0 & ({\rm otherwise})
+\end{array} \right. .
+$$
+This corresponds to a uniform distribution over the volume of a cube, not the surface of a sphere. This is demonstrated using the code random\_tester.cpp producing the follwing scatter plot. When $\vec{d}$ is generated using a uniform distribution, a cube-shaped shadow appears, corresponding to a non-uniformly distributed points on the sphere surface.
+
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=7.0cm,angle=-90]{./random_tester.pdf}
+%    \caption{The planned design for the beam profile monitor.}
+%    \label{fig:MCP_caption}
+  \end{center}
+\end{figure}
+
+
+
+\begin{thebibliography}{9}
+	\bibitem{Muller1959} M. E. Muller, {\it Comm. Assoc. Comp. Mach.} {\bf 2}, 19, (1959).
+\end{thebibliography}
 
 
 
