@@ -25,22 +25,17 @@ double solidangle(double z_0, double x_0, double R_SSD){
 
 
 // Detection efficiency of the SSD
-double efficiency(int N_Fr, int N_Average, double z_l, double R_SSD, double M_H, double M_W, double centerX, double stdevX, double centerY, double stdevY, double z_0, double x_0){
+double efficiency(int N_Fr, int N_Average, double z_l, double R_SSD, double M_R, double centerX, double stdevX, double centerY, double stdevY, double z_0, double x_0){
 
 	double detection = 0.0;
-
-	double y_M_ll = -M_W/2.0;
-	double y_M_ul = M_W/2.0;
-	double z_M_ll = z_0 - (M_H/2.0);
-	double z_M_ul = z_0 + (M_H/2.0);
 
 	random_device rnd;
 	default_random_engine engine(rnd());
 
 	normal_distribution<> randnorm(0.,1.);
 
-	normal_distribution<> randy(centerX,stdevX);
-	normal_distribution<> randz(centerY+z_0,stdevY);
+	normal_distribution<> randy(centerX,stdevX); // MCPx <=> Y for this code
+	normal_distribution<> randz(centerY+z_0,stdevY); // MCPy <=> Z for this code
 
 	for (int j = 0; j < N_Average; j++){
 
@@ -48,14 +43,15 @@ double efficiency(int N_Fr, int N_Average, double z_l, double R_SSD, double M_H,
 
 		for (int i = 0; i < N_Fr; ++i){
 
-			// Define Fr on MESH
-			double y_M = randy(engine);
-			while ((y_M < y_M_ll)||(y_M_ul < y_M)){
+			// Define Fr on MCP IN surface
+			double y_M, z_M;
+			double M = M_R + 1.0;
+			while (M > M_R){
 				y_M = randy(engine);
-			}
-			double z_M = randz(engine);
-			while ((z_M < z_M_ll)||(z_M_ul < z_M)){
 				z_M = randz(engine);
+				double y_mm = y_M;
+				double z_mm = z_M - z_0;
+				M = TMath::Sqrt(y_mm*y_mm + z_mm*z_mm);
 			}
 
 			// Define alpha emitted direction
@@ -109,28 +105,27 @@ int main(int argc, char** argv){
 	int N_Fr = 10000;
 	int N_Average = 1000;
 
-	cout << "Testing with " << N_Fr << " Fr ions on the mesh." << endl;
+	cout << "Testing with " << N_Fr << " Fr ions on the surface of the MCP-IN." << endl;
 	cout << "Taking average of " << N_Average << " trials." << endl;
 
-	double z_l = 1.0;
-	double R_SSD = 6.5;
-	double M_H = 70.0;
-	double M_W = 70.0;
+	double z_l = 1.0; // Thickness of the SSD lid
+	double R_SSD = 6.5; // Radius of the hole on the SSD lid
+	double M_R = 14.0; // Radius of the MCP-IN
 
-	// Based on SIMION simulation	
-	double centerX = 0.0;
-	double centerY = 0.0;
-	double stdevX = 5.0;
-	double stdevY = 1.5;
+	// Based on SIMION simulation (20190814_01)
+	double centerX = -0.42909;
+	double centerY = 1.29343;
+	double stdevX = 2.44142;
+	double stdevY = 1.63478;
 	cout << "Fr distribution = Nx(" << centerX << ", " << stdevX << ") X Ny(" << centerY << ", " << stdevY << ")" << endl;
 
-	// Geometrical variable of the BPM
-	double z_0_mean = 26.0;
-	double x_0_mean = 26.0;
+	// Geometrical variable of the BPM (MCP-IN surface to the SSD lid hole lower surface)
+	double z_0_mean = 24.0;
+	double x_0_mean = 30.4;
 
 	// For (z_0,x_0) optimization
 	double halfwidth = 5.0;
-	double delta = 5.0;
+	double delta = 0.5;
 	int step1d = round(2*halfwidth/delta + 1);
 	TGraph2D *zx = new TGraph2D(step1d*step1d);
 	zx->SetName("zx");
@@ -145,7 +140,7 @@ int main(int argc, char** argv){
 
 	for (int k = 0; k < step1d; ++k){
 		for (int l = 0; l < step1d; ++l){
-			double eff = efficiency(N_Fr, N_Average, z_l, R_SSD, M_H, M_W, centerX, stdevX, centerY, stdevY, z_0, x_0);
+			double eff = efficiency(N_Fr, N_Average, z_l, R_SSD, M_R, centerX, stdevX, centerY, stdevY, z_0, x_0);
 			double geoeff = 100.*solidangle(z_0,x_0,R_SSD)/(2.0*TMath::Pi());
 //			printf("(z_0, x_0) = (%f, %f) mm : %f %% detection\r",z_0,x_0,eff);
 			cout << "(z_0, x_0) = (" << z_0 << ", " << x_0 << ") mm: " << eff << "% detection / Approx. (Sol. Ang./2pi) = " << geoeff << "%" << endl;
@@ -162,7 +157,7 @@ int main(int argc, char** argv){
 	// Draw
 
 	c1->cd(1);
-	// The simulated eff_geometry based on the 2D-Gaussian emittance on the mesh
+	// The simulated eff_geometry based on the 2D-Gaussian emittance on the MCP-IN
 	zx->Draw("SURF1");
 
 

@@ -37,22 +37,20 @@ int main(int argc, char** argv){
         int N_Average = 100000;
 	cout << "Flying " << N_Fr << " alpha particles from the mesh." << endl;
 
-	double z_l = 1.0;
-	double R_SSD = 6.5;
-	double M_H = 70.0;
-	double M_W = 70.0;
-	double R_MCP = 21.0;
+	double z_l = 1.0; // Thickness of the SSD lid
+	double R_SSD = 6.5; // Radius of the hole on the SSD lid
+	double R_MCP = 14.0; //Radius of the MCP-IN
 
-	// Based on SIMION simulation	
-	double centerX = -1.06;
-	double centerY = 0.643;
-	double stdevX = 3.90;
-	double stdevY = 2.37;
+	// Based on SIMION simulation (20190814_01)
+	double centerX = -0.42909;
+	double centerY = 1.29343;
+	double stdevX = 2.44142;
+	double stdevY = 1.63478;
 	cout << "Fr distribution = Nx(" << centerX << ", " << stdevX << ") X Ny(" << centerY << ", " << stdevY << ")" << endl;
 
 	// Geometrical variable of the BPM
-	double z_0 = 26.0;
-	double x_0 = 20.0;
+	double z_0 = 24.0;
+	double x_0 = 30.4;
 	// for CYRIC TOF BPM
 //	double z_0 = 29.0;
 //	double x_0 = 33.0;
@@ -60,17 +58,6 @@ int main(int argc, char** argv){
 	cout << "z_0 = " << z_0 << " mm, x_0 = " << x_0 << " mm" << endl;
 
         c1->cd(1);
-
-	// Draw MESH
-	TPolyLine3D *mesh = new TPolyLine3D(5);
-	mesh->SetPoint(0, 0., -M_W/2.0, z_0+M_H/2.0);
-	mesh->SetPoint(1, 0., M_W/2.0, z_0+M_H/2.0);
-	mesh->SetPoint(2, 0., M_W/2.0, z_0-M_H/2.0);
-	mesh->SetPoint(3, 0., -M_W/2.0, z_0-M_H/2.0);
-	mesh->SetPoint(4, 0., -M_W/2.0, z_0+M_H/2.0);
-	mesh->SetLineWidth(3);
-	mesh->SetLineColor(4);
-	mesh->Draw();
 
 	// Draw MCP
 	int mcp_points = 1000;
@@ -116,11 +103,6 @@ int main(int argc, char** argv){
 
 	double detection = 0.0;
 
-	double y_M_ll = -M_W/2.0;
-	double y_M_ul = M_W/2.0;
-	double z_M_ll = z_0 - (M_H/2.0);
-	double z_M_ul = z_0 + (M_H/2.0);
-
 	random_device rnd;
 	default_random_engine engine(rnd());
 
@@ -132,14 +114,16 @@ int main(int argc, char** argv){
         for (int j = 0; j < N_Average; ++j){
 		int N_Detected = 0;
 		for (int i = 0; i < N_Fr; ++i){
-			// Define Fr on MESH
-			double y_M = randy(engine);
-			while ((y_M < y_M_ll)||(y_M_ul < y_M)){
+
+			// Define Fr on MCP-IN surface
+			double y_M, z_M;
+			double M = R_MCP + 1.0;
+			while (M > R_MCP){
 				y_M = randy(engine);
-			}
-			double z_M = randz(engine);
-			while ((z_M < z_M_ll)||(z_M_ul < z_M)){
 				z_M = randz(engine);
+				double y_mm = y_M;
+				double z_mm = z_M - z_0;
+				M = TMath::Sqrt(y_mm*y_mm + z_mm*z_mm);
 			}
 
 			// Define alpha emitted direction
@@ -202,8 +186,8 @@ int main(int argc, char** argv){
 
 	traj->Draw("SAME,P0,ah,fb,bb");
 	traj->GetXaxis()->SetLimits(-5.,x_0+R_SSD+5.);
-	traj->GetYaxis()->SetLimits(-M_W/2.0-5.,M_W/2.0+5.);
-	traj->GetZaxis()->SetLimits(-5.,M_H+5.);
+	traj->GetYaxis()->SetLimits(-R_MCP-5.,R_MCP+5.);
+	traj->GetZaxis()->SetLimits(-5.,R_MCP+5.);
 
 
 
