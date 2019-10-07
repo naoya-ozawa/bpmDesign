@@ -33,8 +33,8 @@ int main(int argc, char** argv){
 	TCanvas *c1 = new TCanvas();
 	c1->Divide(1,2);
 
-	int N_Fr = 100;
-        int N_Average = 100000;
+	int N_Fr = 10000000; // 10^7 per sec.
+        int N_Average = 60; // 1 min average
 	cout << "Flying " << N_Fr << " alpha particles from the mesh." << endl;
 
 	double z_l = 1.0; // Thickness of the SSD lid
@@ -102,6 +102,7 @@ int main(int argc, char** argv){
 //	traj->Draw("P0");
 
 	double detection = 0.0;
+	double detect_sq = 0.0;
 
 	random_device rnd;
 	default_random_engine engine(rnd());
@@ -111,8 +112,8 @@ int main(int argc, char** argv){
 	normal_distribution<> randy(centerX,stdevX);
 	normal_distribution<> randz(centerY+z_0,stdevY);
 
-        for (int j = 0; j < N_Average; ++j){
-		int N_Detected = 0;
+        int N_Detected = 0;
+	for (int j = 0; j < N_Average; ++j){
 		for (int i = 0; i < N_Fr; ++i){
 
 			// Define Fr on MCP-IN surface
@@ -151,7 +152,7 @@ int main(int argc, char** argv){
 
 
 
-			// Draw all trajectories for the 1st sample
+			// Draw hit trajectories for the 1st sample
                         if (j == 0){
 				double t = TMath::Sqrt(z_0*z_0 + x_0*x_0); // mm
 				double x_t = a_x*t;
@@ -162,12 +163,13 @@ int main(int argc, char** argv){
 				trajectory->SetPoint(0,0.0,y_M,z_M);
 				trajectory->SetPoint(1,x_t,y_t,z_t);
 				trajectory->SetLineWidth(1);
-				trajectory->SetLineStyle(2);
-				trajectory->Draw("SAME");
+//				trajectory->SetLineStyle(2);
+//				trajectory->Draw("SAME");
 				if ((lid_upper<0.0)&&(lid_lower<0.0)){
 					trajectory->SetLineColor(2);
 					traj->SetPoint(2*N_Detected,0.0,y_M,z_M);
 					traj->SetPoint(2*N_Detected+1,x_l,y_l,0.0);
+					trajectory->Draw("SAME");
 				}
 			}
 	
@@ -177,12 +179,16 @@ int main(int argc, char** argv){
 				++N_Detected;
 			}
 		}
-		detection += 100.*double(N_Detected)/double(N_Fr);
+		detection += double(N_Detected)/double(N_Fr);
+		detect_sq += double(N_Detected)*double(N_Detected)/(double(N_Fr)*double(N_Fr));
+		N_Detected = 0;
 	}
 
-        detection /= N_Average;
+        detection /= double(N_Average);
+	detect_sq /= double(N_Average);
 
-	cout << detection << "% entered the SSD holder." << endl;
+	double dete_StDev = TMath::Sqrt(detect_sq - (detection*detection));
+	cout << 100.*detection << " +- " << 100.*dete_StDev << "% entered the SSD holder." << endl;
 
 	traj->Draw("SAME,P0,ah,fb,bb");
 	traj->GetXaxis()->SetLimits(-5.,x_0+R_SSD+5.);
@@ -202,7 +208,7 @@ int main(int argc, char** argv){
 	l.DrawLatex(0.15,0.8,Form("%d #alpha particles flown %d times in upstream direction",N_Fr,N_Average));
 	l.DrawLatex(0.15,0.7,"#alpha initial position distribution on MCP:");
 	l.DrawLatex(0.25,0.6,Form("N_{x}(%g, %g) #times N_{y}(%g, %g)",centerX,stdevX,centerY,stdevY));
-	l.DrawLatex(0.15,0.5,Form("%g %% of them reached the Si detector.",detection));
+	l.DrawLatex(0.15,0.5,Form("%g #pm %g %% of them reached the Si detector.",100.*detection,100.*dete_StDev));
 	l.DrawLatex(0.15,0.4,Form("For reference: (Solid angle)/(2#pi) = %g %%",geoeff));
 
 
