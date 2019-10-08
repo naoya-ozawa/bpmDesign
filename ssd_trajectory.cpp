@@ -33,7 +33,8 @@ int main(int argc, char** argv){
 	TCanvas *c1 = new TCanvas();
 	c1->Divide(1,2);
 
-	int N_Fr = 10000000; // 10^7 per sec.
+//	int N_Fr = 10000000; // 10^7 per sec.
+	int N_Fr = 100; // for testing
         int N_Average = 60; // 1 min average
 	cout << "Flying " << N_Fr << " alpha particles from the mesh." << endl;
 
@@ -67,7 +68,7 @@ int main(int argc, char** argv){
 	}
 	mcp->SetLineWidth(3);
 	mcp->SetLineColor(4);
-	mcp->Draw("SAME");
+	mcp->Draw("SAME F");
 
 	//Draw SSD Holder Hole (upper surface)
 	int holder_points = 1000;
@@ -89,9 +90,9 @@ int main(int argc, char** argv){
 	holder_l->Draw("SAME");
 
 
-//	TPad *p1 = new TPad("p1","p1",0.0,0.0,1.0,1.0,0,0,0);
-//	p1->Draw();
-//	p1->cd();
+	TPad *p1 = new TPad("p1","p1",0.0,0.0,1.0,1.0,0,0,0);
+	p1->Draw();
+	p1->cd();
 	
 //	TView *view = TView::CreateView(1);
 //	view->SetRange(-5.,-M_W/2.0 - 5.,-5.,x_0+R_SSD+5.,M_W/2.0 + 5.,M_H + 5.);
