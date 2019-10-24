@@ -10,6 +10,7 @@
 
 \maketitle
 
+\section{General Idea}
 This is a script to 1. Calculate the $\alpha$ detection efficiency of the beam profile monitor and 2. Find the optimum geometry parameters $z_0$ and $x_0$ that maximizes the detection efficiency. Here, "detection efficiency" is defined as the percentage of particles that hit the SSD which are emitted from the surface of the MCP/mesh. In the general literature, "detection efficiency" would be defined as the fraction of $\alpha$ particles that generate a detectable signal at the Si detector out of the number of Fr ions that reached the surface of the MCP/mesh. In our particular case, this efficiency $\varepsilon_{tot}$ could be factorized in the following way:
 \begin{eqnarray*}
 \varepsilon_{tot} & = & \varepsilon_{mesh} \varepsilon_{decay} \varepsilon_{direction} \varepsilon_{geometry} \varepsilon_{detection}
@@ -46,7 +47,7 @@ In the code, the value of $\varepsilon$ is calculated for various combinations o
 
 
 
-\subsubsection*{Footnote: Generating Random Trajectories}
+\subsection{Generating Random Trajectories}
 In the code, random trajectories are defined by giving a random "starting point" 
 $$
 \vec{P_0} = \left(
@@ -106,7 +107,7 @@ This corresponds to a uniform distribution over the volume of a cube, not the su
 
 
 
-\subsubsection*{Case with no mesh}
+\subsection{Case with no mesh}
 In the case where a mesh is not applied, the Fr ions will be attatched to the surface of the MCP front panel. Since the open-area ratio (OAR) of our MCP is 63\%, approximatly 37\% of the Fr that reached the MCP will be attatched to the surface. This corresponds to the replacement
 
 $$
@@ -128,6 +129,186 @@ $$
 $$
 
 is the ratio of the $\alpha$ particles emitted on the MCP-IN surface that reaches the SSD surface.
+
+
+
+
+
+\section{A much more realistic consideration}
+
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=7.0cm]{./figures/MCP2_captioned.png}
+	  \caption{The geometry of the beam profile monitor around the MCP and SSD. The SSD box contains the SSD with its sensitive side facing upwards, and the ${}^{241}$Am box contains the ${}^{241}$Am $\alpha$ source. Each box has a hole $R_{SSD} = 6.5$ mm and $R_{Am} = 2.5$ mm at the center respectively, so that the $\alpha$ rays can be emitted towards the SSD, and the SSD can catch $\alpha$ rays from the Am source and Fr.}
+    \label{fig:MCP2_captioned}
+  \end{center}
+\end{figure}
+
+As done previously, the center of the MCP-IN surface will be defined as the origin. The $x$ axis is equivalent to the Fr beam upstream direction, i.e. towards the SSD holder, the $z$ axis points towards the ICF152 flange holding the BPM, and the $y$ axis direction is chosen to form a right-handed corrdinate system.
+
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=7.0cm]{./figures/CoordinateSystem_captioned.png}
+	  \caption{The coordinate system defined for this simulation.}
+    \label{fig:CoordinateSystem_captioned}
+  \end{center}
+\end{figure}
+
+Thus, the MCP surface is defined as
+
+$$
+MCP_{surface} = \left\{ (x,~y,~z) \right| \left. x = 0,~y^2 + z^2 < R_{MCP}^2 \right\}
+$$
+
+where $R_{MCP} = 14~{\rm mm}$ and the SSD sensitive surface is defined as
+
+$$
+SSD_{surface} = \left\{ (x,~y,~z) \right| \left. (x - SSDhole_x)^2 + y^2 < R_{SSD}^2,~z = -z_0 \right\}.
+$$
+
+where $SSDhole = 30.8~{\rm mm},~R_{SSD} = 6.5~{\rm mm},~z_0 = 24~{\rm mm}$.
+
+
+
+\subsection{$\alpha$ particle emission}
+
+Given the actual geometry of the BPM and the fact that the Fr beam profile can differ greatly from the simulated prediction, a far more general simulation should be done. Practically, $\alpha$ particles could be emitted from five different places:
+
+\subsubsection{Case 1: From the MCP-IN surface}
+
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=7.0cm]{./figures/EmitCase1.png}
+	  \caption{The Fr beam could be stopped at the surface of the MCP (the blue region).}
+    \label{fig:EmitCase1}
+  \end{center}
+\end{figure}
+
+$$
+EmitSurface1 = \left\{ (x,~y,~z) \right| \left. x = 0,~y^2+z^2 < R_{MCP}^2 \right\}
+$$
+
+\subsubsection{Case 2: From the surface of the MCP lid}
+
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=7.0cm]{./figures/EmitCase2.png}
+	  \caption{The Fr beam could be stopped at the surface of the MCP lid (the blue region).}
+    \label{fig:EmitCase2}
+  \end{center}
+\end{figure}
+
+$$
+EmitSurface2 = \left\{ (x,~y,~z) \right| \left. x = T_{lid},~R_{MCP}^2 < y^2+z^2 < R_{MCPlid}^2 \right\}
+$$
+
+where $T_{lid} = 3.5$ mm, $R_{MCP} = 14$ mm, $R_{MCPlid} = 25$ mm.
+
+
+
+\subsubsection{Case 3: From the surface of the SSD holder}
+
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=7.0cm]{./figures/EmitCase3.png}
+	  \caption{The Fr beam could be stopped at the surface of the SSD holder (the blue region).}
+    \label{fig:EmitCase3}
+  \end{center}
+\end{figure}
+
+\begin{eqnarray*}
+	EmitSurface3 & = & \left\{ (x,~y,~z) \right| x = SSDholder_{front},\\
+	& & \left( -\frac{W_{SSDholder}}{2} < y < \frac{W_{SSDholder}}{2},~-\frac{H_{SSDholder}}{2} < z < \frac{H_{SSDholder}}{2} \right) \\
+	& \cap & \overline{\left( y^2+z^2 < R_{MCP}^2 \right)} \\
+	& \cap & \overline{\left( -\frac{W_{SSDboxlid}}{2} < y < \frac{W_{SSDboxlid}}{2}, H_{SSDboxlid} < z < \frac{H_{SSDholder}}{2} \right)} \\
+	& \cap & \left. \overline{\left( -\frac{W_{SSDboxlid}}{2} < y < \frac{W_{SSDboxlid}}{2}, -\frac{H_{SSDholder}}{2} < z < -H_{SSDboxlid} \right)} \right\}
+\end{eqnarray*}
+
+where $SSDholder_{front} = 16.8$ mm, $W_{SSDholder} = 50$ mm, $H_{SSDholder} = 64$ mm, $W_{SSDboxlid} = 28$ mm, $H_{SSDboxlid} = 23$ mm.
+
+
+
+\subsubsection{Case 4: From the surface of the Am box}
+
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=7.0cm]{./figures/EmitCase4.png}
+	  \caption{The Fr beam could be stopped at the surface of the Am box (the blue region).}
+    \label{fig:EmitCase4}
+  \end{center}
+\end{figure}
+
+\begin{eqnarray*}
+	EmitSurface4 & = & \left\{ (x,~y,~z) \right| \\
+	&  & \left( SSDholder_{front} < x < SSDhole,~-\frac{W_{SSDboxlid}}{2} < y < \frac{W_{SSDboxlid}}{2} \right) \\
+	& \cup & \left. \left( (x-SSDhole)^2+y^2 < R_{SSD}^2 \cap (x-SSDhole)^2+y^2 > R_{SSD}^2 \right),~z = H_{SSDboxlid} \right\}
+\end{eqnarray*}
+
+
+\subsubsection{Case 5: From the ${}^{241}$Am source itself}
+
+$$
+EmitSurface5 = \left\{(x,~y,~,z) \right| \left. (x-SSDhole)^2 + y^2 < R_{Am}^2, z = z_0 \right\}
+$$
+
+where $R_{Am} = 2.5$ mm.
+
+
+
+\subsection{$\alpha$ ray hit detection}
+
+The $\alpha$ rays emitted from the five positions listed above could be blocked by the following components before it reaches the SSD sensitive surface. 
+
+
+\subsubsection{Hit 1: MCP lid side}
+
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=7.0cm]{./figures/HitCase1.png}
+	  \caption{The $\alpha$ particle could be stopped at the side of the MCP hole (the red region).}
+    \label{fig:HitCase1}
+  \end{center}
+\end{figure}
+
+$$
+HitSurface1 = \left\{(x,~y,~z) \right| \left. 0 < x < T_{lid},~ y^2+z^2 = R_{MCP}^2 \right\}
+$$
+
+\subsubsection{Hit 2: SSD holder back + inner side}
+
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=7.0cm]{./figures/HitCase2.png}
+	  \caption{The $\alpha$ particle could be stopped at the back of the SSD holder and the side of the hole on it (the red region).}
+    \label{fig:HitCase2}
+  \end{center}
+\end{figure}
+
+\begin{eqnarray*}
+	HitSurface2 & = & \left\{(x,~y,~z) \right| \\
+	& & \left( x=SSDholder_{back}, -\frac{W_{SSDholder}}{2}  < y < \frac{W_{SSDholder}}{2},\right. \\
+	& & \left. -\frac{H_{SSDholder}}{2} < z < \frac{H_{SSDholder}}{2}, y^2+z^2 > R_{MCP}^2 \right) \\
+	& \cup & \left. \left( y^2+z^2 = R_{MCP}^2, SSDholder_{back} < x < SSDholder_{front} \right) \right\}
+\end{eqnarray*}
+
+where $SSDholder_{back} = 13.8$ mm.
+
+\subsubsection{Hit 3: SSD box lid + side}
+
+\begin{figure}[H]
+  \begin{center}
+    \includegraphics[width=7.0cm]{./figures/HitCase3.png}
+	  \caption{The $\alpha$ particle could be stopped at the upper surface of the SSD box and side of its hole (the red region).}
+    \label{fig:HitCase3}
+  \end{center}
+\end{figure}
+
+\begin{eqnarray*}
+	HitSurface3 & = & \left\{(x,~y,~z) \right| \\
+	& & \left( \left( SSDholder_{front} < x < SSDhole, -\frac{W_{SSDboxlid}}{2} < y < \frac{W_{SSDboxlid}}{2} \right) \right. \\
+	& \cup & \left. \left( (x-SSDhole)^2+y^2<R_{MCP}^2 \right), (x-SSDhole)^2+y^2 > R_{SSD}^2, z = H_{SSDboxlid} \right) \\
+	& \cup & \left. \left( (x-SSDhole)^2+y^2 = R_{SSD}^2, -z_0 < z < H_{SSDboxlid} \right) \right\}
+\end{eqnarray*}
 
 
 \begin{thebibliography}{9}
