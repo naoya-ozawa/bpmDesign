@@ -26,10 +26,26 @@ double solidangle(double z_0, double x_0, double R_SSD){
 	return Sr;
 }
 
+// Solver for ax^2 + bx + c = 0
+double solve_quad (double a, double b, double c){
+	double positive = (-b + TMath::Sqrt(b*b - 4.0*a*c))/(2.0*a);
+	double negative = (-b - TMath::Sqrt(b*b - 4.0*a*c))/(2.0*a);
+	if (negative < 0.0){
+		return positive;
+	}else{
+		return negative;
+	}
+}
+
 
 // Hit Component 1: MCP lid side
-// Returns TRUE if point (x,y,z) is on the surface
-bool HitSurface1 (double x, double y, double z, double R_MCP, double T_lid){
+// Returns TRUE if trajectory (x_M,y_M,z_M,a_x,a_y,a_z) penetrates the surface
+bool HitSurface1 (double x_M, double y_M, double z_M, double a_x, double a_y, double a_z, double R_MCP, double T_lid){
+	double t_hitsurface1 = solve_quad(a_y*a_y, 2.0*y_M*a_y + 2.0*z_M*a_z, y_M*y_M+z_M*z_M-R_MCP*R_MCP);
+	double x = x_M + t_hitsurface1*a_x;
+	double y = y_M + t_hitsurface1*a_y;
+	double z = z_M + t_hitsurface1*a_z;
+	
 	bool strip = (0.0 <= x) && (x <= T_lid);
 	bool ring = (y*y + z*z == R_MCP*R_MCP);
 	return (strip && ring);
@@ -69,11 +85,14 @@ bool HitSurface3 (double x, double y, double z, double SSDholder_front, double x
 
 
 // Does the trajectory reach the SSD?
-bool reach_ssd (double y_M, double z_M, double a_x, double a_y, double a_z){
+bool reach_ssd (double x_M, double y_M, double z_M, double a_x, double a_y, double a_z){
 	// The particle position is defined as
 	// vec{P} = (t*a_x, y_M + t*a_y, z_M + t*a_z)
 	
 	// Hit Component 1
+	bool hits_hitsurface1 = HitSurface1(x_M,y_M,z_M,a_x,a_y,a_z,R_MCP,T_lid);
+	//
+	//
 }
 
 
