@@ -163,10 +163,10 @@ $$
 where $R_{MCP} = 14~{\rm mm}$ and the SSD sensitive surface is defined as
 
 $$
-SSD_{surface} = \left\{ (x,~y,~z) \right| \left. (x - SSDhole_x)^2 + y^2 < R_{SSD}^2,~z = -z_0 \right\}.
+SSD_{surface} = \left\{ (x,~y,~z) \right| \left. (x - x_0)^2 + y^2 < R_{SSD}^2,~z = -z_0 \right\}.
 $$
 
-where $SSDhole = 30.8~{\rm mm},~R_{SSD} = 6.5~{\rm mm},~z_0 = 24~{\rm mm}$.
+where $x_0 = 30.8~{\rm mm},~R_{SSD} = 6.5~{\rm mm},~z_0 = 24~{\rm mm}$.
 
 
 
@@ -241,14 +241,14 @@ where $SSDholder_{front} = 16.8$ mm, $W_{SSDholder} = 50$ mm, $H_{SSDholder} = 6
 \begin{eqnarray*}
 	EmitSurface4 & = & \left\{ (x,~y,~z) \right| \\
 	&  & \left( SSDholder_{front} < x < SSDhole,~-\frac{W_{SSDboxlid}}{2} < y < \frac{W_{SSDboxlid}}{2} \right) \\
-	& \cup & \left. \left( (x-SSDhole)^2+y^2 < R_{SSD}^2 \cap (x-SSDhole)^2+y^2 > R_{SSD}^2 \right),~z = H_{SSDboxlid} \right\}
+	& \cup & \left. \left( (x-x_0)^2+y^2 < R_{SSD}^2 \cap (x-x_0)^2+y^2 > R_{SSD}^2 \right),~z = H_{SSDboxlid} \right\}
 \end{eqnarray*}
 
 
 \subsubsection{Case 5: From the ${}^{241}$Am source itself}
 
 $$
-EmitSurface5 = \left\{(x,~y,~,z) \right| \left. (x-SSDhole)^2 + y^2 < R_{Am}^2, z = z_0 \right\}
+EmitSurface5 = \left\{(x,~y,~,z) \right| \left. (x-x_0)^2 + y^2 < R_{Am}^2, z = z_0 \right\}
 $$
 
 where $R_{Am} = 2.5$ mm.
@@ -306,8 +306,8 @@ where $SSDholder_{back} = 13.8$ mm.
 \begin{eqnarray*}
 	HitSurface3 & = & \left\{(x,~y,~z) \right| \\
 	& & \left( \left( SSDholder_{front} < x < SSDhole, -\frac{W_{SSDboxlid}}{2} < y < \frac{W_{SSDboxlid}}{2} \right) \right. \\
-	& \cup & \left. \left( (x-SSDhole)^2+y^2<R_{MCP}^2 \right), (x-SSDhole)^2+y^2 > R_{SSD}^2, z = H_{SSDboxlid} \right) \\
-	& \cup & \left. \left( (x-SSDhole)^2+y^2 = R_{SSD}^2, -z_0 < z < H_{SSDboxlid} \right) \right\}
+	& \cup & \left. \left( (x-x_0)^2+y^2<R_{MCP}^2 \right), (x-x_0)^2+y^2 > R_{SSD}^2, z = H_{SSDboxlid} \right) \\
+	& \cup & \left. \left( (x-x_0)^2+y^2 = R_{SSD}^2, -z_0 < z < H_{SSDboxlid} \right) \right\}
 \end{eqnarray*}
 
 
