@@ -305,8 +305,8 @@ where $SSDholder_{back} = 13.8$ mm.
 
 \begin{eqnarray*}
 	HitSurface3 & = & \left\{(x,~y,~z) \right| \\
-	& & \left( \left( SSDholder_{front} < x < SSDhole, -\frac{W_{SSDboxlid}}{2} < y < \frac{W_{SSDboxlid}}{2} \right) \right. \\
-	& \cup & \left. \left( (x-x_0)^2+y^2<R_{MCP}^2 \right), (x-x_0)^2+y^2 > R_{SSD}^2, z = H_{SSDboxlid} \right) \\
+	& & \left( \left( SSDholder_{front} < x < x_0, -\frac{W_{SSDboxlid}}{2} < y < \frac{W_{SSDboxlid}}{2} \right) \right. \\
+	& \cup & \left. \left( (x-x_0)^2+y^2<\left(\frac{W_{SSDboxlid}}{2}\right)^2 \right), (x-x_0)^2+y^2 > R_{SSD}^2, z = H_{SSDboxlid} \right) \\
 	& \cup & \left. \left( (x-x_0)^2+y^2 = R_{SSD}^2, -z_0 < z < H_{SSDboxlid} \right) \right\}
 \end{eqnarray*}
 
