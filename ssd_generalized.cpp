@@ -261,6 +261,24 @@ int main(int argc, char** argv){
 	double R_MCP = 14.0; // Radius of the MCP-IN
 	double T_lid = 3.5; // Thickness of the MCP lid from the MCP surface
 
+	// BPM geometry parameters
+	double geometry[13];
+	geometry[0] = 14.0; // R_MCP:Radius of MCP-IN
+	geometry[1] = 25.0; // R_MCPlid:Outer radius of MCP lid
+	geometry[2] = 6.5; // R_SSD:Radius of hole on SSD box
+	geometry[3] = 2.5; // R_Am:Radius of hole on Am box
+	geometry[4] = 30.8; // x_0:SSDholder surface - R_SSD center
+	geometry[5] = 24.0; // z_0:MCP center - SSD box surface
+	geometry[6] = 3.5; // T_lid:thickness of SSD box surface
+	geometry[7] = 16.8; // SSDholder_front:MCP-IN - SSDholder-upstream
+	geometry[8] = 13.8; // SSDholder_back:MCP-IN - SSDholder-downstream
+	geometry[9] = 50.0; // W_SSDholder:Width of SSD holder
+	geometry[10] = 64.0; // H_SSDholder:Height of SSD holder
+	geometry[11] = 28.0; // W_SSDboxlid:Width of SSD box
+	geometry[12] = 23.0; // H_SSDboxlid:Height of SSD box
+
+
+
 	// Based on SIMION simulation (20190814_01)
 	double centerX = -0.42909;
 	double centerY = 1.29343;
