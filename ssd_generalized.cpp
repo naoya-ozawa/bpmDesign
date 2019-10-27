@@ -26,73 +26,220 @@ double solidangle(double z_0, double x_0, double R_SSD){
 	return Sr;
 }
 
-// Solver for ax^2 + bx + c = 0
+// Solver for ax^2 + bx + c = 0 (0 <= x <= 1)
+// Returns 0 if no solution exists
 double solve_quad (double a, double b, double c){
 	double positive = (-b + TMath::Sqrt(b*b - 4.0*a*c))/(2.0*a);
 	double negative = (-b - TMath::Sqrt(b*b - 4.0*a*c))/(2.0*a);
-	if (negative < 0.0){
+	if ((negative < 0.0)&&(positive <= 1.0)){
 		return positive;
-	}else{
+	}else if ((negative >= 0.0)&&(positive > 1.0)){
 		return negative;
+	}else{
+		return 0.0;
 	}
+}
+
+
+// Goal: SSD surface
+// Returns t_SSD: where trajectory (x_M,y_M,z_M,a_x,a_y,a_z) penetrates the surface z = -z_0
+double t_SSD (double z_M, double a_z, double z_0){
+	if (a_z == 0.0){
+		return 0.0;
+	}else{
+		return -(z_0+z_M)/a_z;
+	}
+}
+
+bool HitsSSD (double x_M, double y_M, double z_M, double a_x, double a_y, double a_z, double t_SSD, double z_0, double x_0){
+	// vec{P} = (x_M,y_M,z_M) + t_SSD*(a_x,a_y,a_z)
+	// is within (x-x_0)^2+y^2<R_SSD^2 ?
+	double x = x_M + t_SSD*a_x;
+	double y = y_M + t_SSD*a_y;
+	return ((x-x_0)*(x-x_0) + y*y < R_SSD*R_SSD);
 }
 
 
 // Hit Component 1: MCP lid side
 // Returns TRUE if trajectory (x_M,y_M,z_M,a_x,a_y,a_z) penetrates the surface
-bool HitSurface1 (double x_M, double y_M, double z_M, double a_x, double a_y, double a_z, double R_MCP, double T_lid){
-	double t_hitsurface1 = solve_quad(a_y*a_y, 2.0*y_M*a_y + 2.0*z_M*a_z, y_M*y_M+z_M*z_M-R_MCP*R_MCP);
-	double x = x_M + t_hitsurface1*a_x;
-	double y = y_M + t_hitsurface1*a_y;
-	double z = z_M + t_hitsurface1*a_z;
+bool HitSurface1 (double x_M, double y_M, double z_M, double a_x, double a_y, double a_z, double t_SSD, double R_MCP, double T_lid){
+	// vec{P} = (x_M,y_M,z_M) + t~*t_SSD*(a_x,a_y,a_z)
+	// hits y^2+z^2 = R_MCP^2 at t~ = t_hitsurface1 ?
+	// (y_M+t~*t_SSD*a_y)^2 + (z_M+t~*t_SSD*a_z) = R_MCP^2
+	// {(t_SSD*a_y)^2+(t_SSD*a_z)^2}*t~^2
+	// + {2*y_M*t_SSD*a_y+2*z_M*t_SSD*a_z}*t~
+	// + y_M^2 + z_M^2 - R_MCP^2
 	
-	bool strip = (0.0 <= x) && (x <= T_lid);
-	bool ring = (y*y + z*z == R_MCP*R_MCP);
-	return (strip && ring);
+	double coef_a = ((a_y*a_y) + (a_z*a_z))*t_SSD*t_SSD;
+	double coef_b = (y_M*a_y + z_M*a_z)*2.0*t_SSD;
+	double coef_c = y_M*y_M + z_M*z_M - R_MCP*R_MCP;
+
+	double t_hitsurface1 = solve_quad(coef_a,coef_b,coef_c);
+	double x = x_M + t_hitsurface1*t_SSD*a_x;
+	double y = y_M + t_hitsurface1*t_SSD*a_y;
+	double z = z_M + t_hitsurface1*t_SSD*a_z;
+	
+	if ((t_hitsurface1 < 0.0)||(t_hitsurface1 > 1.0)){
+		// The trajectory does not pass through here
+		return false;
+	}else{
+		// is the intercept within 0 < x < T_lid ?
+		return (0.0 <= x) && (x <= T_lid);
+	}
 }
 
 // Hit Component 2: SSD holder back + inner side
-// Returns TRUE if point (x,y,z) is on the surface
-bool HitSurface2 (double x, double y, double z, double SSDholder_back, double W_SSDholder, double H_SSDholder, double R_MCP, double SSDholder_front){
-	bool holderback_x = (x == SSDholder_back);
-	bool holderback_y = (-W_SSDholder/2.0 <= y) && (y <= W_SSDholder/2.0);
-	bool holderback_z = (-H_SSDholder/2.0 <= z) && (z <= H_SSDholder/2.0);
-	bool openingring = (y*y + z*z >= R_MCP*R_MCP);
-	bool ssd_holder_back = holderback_x && holderback_y && holderback_z && openingring;
+// Returns TRUE if the trajectory (x_M,y_M,z_M,a_x,a_y,a_z) penetrates the surface
+bool HitSurface2 (double x_M, double y_M, double z_M, double a_x, double a_y, double a_z, double t_SSD, double SSDholder_back, double W_SSDholder, double H_SSDholder, double R_MCP, double SSDholder_front){
+	
+	// part 1: Holder back
+	
+	// vec{P} = (x_M,y_M,z_M) + t~*t_SSD*(a_x,a_y,a_z)
+	// hits x = SSDholder_back at t~ = t_hitsurface2_1 ?
+	// x_M + t~*t_SSD*a_x = SSDholder_back
+	// t~ = (SSDholder_back - x_M) / (t_SSD*a_x)
+	
+	bool holderback;
+	if (t_SSD*a_x == 0.0){
+		holderback = false;
+	}else{
+		double t_hitsurface2_1 = (SSDholder_back - x_M)/(t_SSD*a_x);
+		double x = x_M + t_hitsurface2_1*t_SSD*a_x;
+		double y = y_M + t_hitsurface2_1*t_SSD*a_y;
+		double z = z_M + t_hitsurface2_1*t_SSD*a_z;
+		// -W_SSDholder/2 < y < W_SSDholder/2 ?
+		bool holderback_y = (-W_SSDholder/2.0 <= y) && (y <= W_SSDholder/2.0);
+		// -H_SSDholder/2 < z < H_SSDholder/2 ?
+		bool holderback_z = (-H_SSDholder/2.0 <= z) && (z <= H_SSDholder/2.0);
+		// y^2+z^2 > R_MCP^2 ?
+		bool openingring = (y*y + z*z >= R_MCP*R_MCP);
+		holderback = holderback_y && holderback_z && openingring;
+	}
 
-	bool ringstrip = (y*y + z*z == R_MCP*R_MCP);
-	bool side_x = (SSDholder_back <= x) && (x <= SSDholder_front);
+	// part 2: Inner side
+	
+	// vec{P} = (x_M,y_M,z_M) + t~*t_SSD*(a_x,a_y,a_z)
+	// hits y^2+z^2 = R_MCP^2 at t~ = t_hitsurface2_2 ?
+	//(y_M+t~*t_SSD*a_y)^2 + (z_M+t~*t_SSD*a_z) = R_MCP^2
+	// {(t_SSD*a_y)^2+(t_SSD*a_z)^2}*t~^2
+	// + {2*y_M*t_SSD*a_y+2*z_M*t_SSD*a_z}*t~
+	// + y_M^2 + z_M^2 - R_MCP^2
 
-	return ssd_holder_back || side_x;
+	double coef_a = ((a_y*a_y) + (a_z*a_z))*t_SSD*t_SSD;
+	double coef_b = (y_M*a_y + z_M*a_z)*2.0*t_SSD;
+	double coef_c = y_M*y_M + z_M*z_M - R_MCP*R_MCP;
+
+	double t_hitsurface2_2 = solve_quad(coef_a,coef_b,coef_c);
+
+	double x = x_M + t_hitsurface2_2*t_SSD*a_x;
+	double y = y_M + t_hitsurface2_2*t_SSD*a_y;
+	double z = z_M + t_hitsurface2_2*t_SSD*a_z;
+
+	bool inner_side = (SSDholder_back <= x) && (x <= SSDholder_front);
+
+	return holderback || inner_side;
 }
 
+
 // Hit Component 3: SSD box lid + side
-// Returns TRUE if point (x,y,z) is on the surface
-bool HitSurface3 (double x, double y, double z, double SSDholder_front, double x_0, double W_SSDboxlid, double R_MCP, double R_SSD, double H_SSDboxlid){
-	bool boxlid_x = (SSDholder_front <= x) && (x <= x_0);
-	bool boxlid_y = (-W_SSDboxlid/2.0 <= y) && (y <= W_SSDboxlid/2.0);
-	bool boxlid_curve = ((x-x_0)*(x-x_0) + y*y <= (W_SSDboxlid/2.0)*(W_SSDboxlid/2.0));
-	bool boxlid_nothole = ((x-x_0)*(x-x_0) + y*y >= R_SSD*R_SSD);
-	bool boxlid_z = (z == H_SSDboxlid);
-	bool boxlid = (boxlid_x && boxlid_y) || (boxlid_curve && boxlid_nothole);
+// Returns TRUE if trajectory (x_M,y_M,z_M,a_x,a_y,a_z) penetrates the surface
+bool HitSurface3 (double x_M, double y_M, double z_M, double a_x, double a_y, double a_z, double t_SSD, double SSDholder_front, double x_0, double W_SSDboxlid, double R_MCP, double R_SSD, double H_SSDboxlid){
 
-	bool sidestrip_ring = ((x-x_0)*(x-x_0) + y*y == R_SSD*R_SSD);
-	bool sidestrip_z = (-z_0 <= z) && (z <= H_SSDboxlid);
-	bool sidestrip = sidestrip_ring && sidestrip_z;
+	// part 1: Box lid
+	
+	// vec{P} = (x_M,y_M,z_M) + t~*t_SSD*(a_x,a_y,a_z)
+	// hits z = H_SSDboxlid at t~ = t_hitsurface3_1 ?
+	// z_M + t~*t_SSD*a_z = H_SSDboxlid
+	// t~ = (H_SSDboxlid - z_M) / (t_SSD*a_z)
 
-	return boxlid || sidestrip;
+	bool boxlid;
+	if (t_SSD*a_z == 0.0){
+		boxlid = false;
+	}else{
+		double t_hitsurface3_1 = (H_SSDboxlid - z_M)/(t_SSD*a_z);
+		double x = x_M + t_hitsurface3_1*t_SSD*a_x;
+		double y = y_M + t_hitsurface3_1*t_SSD*a_y;
+		double z = z_M + t_hitsurface3_1*t_SSD*a_z;
+		// (x-x_0)^2+y^2 > R_SSD^2 ?
+		bool openingring = ((x-x_0)*(x-x_0) + y*y >= R_SSD*R_SSD);
+		// SSDholder_front < x < x_0 ?
+		bool boxlid_x = (SSDholder_front <= x) && (x <= x_0);
+		// -W_SSDboxlid/2 < y < W_SSDboxlid/2 ?
+		bool boxlid_y = (-W_SSDboxlid/2.0 <= y) && (y <= W_SSDboxlid/2.0);
+		bool boxlid_rect = boxlid_x && boxlid_y;
+		// (x-x_0)^2+y^2 < (W_SSDboxlid/2)^2 ?
+		bool boxlid_circ = (x-x_0)*(x-x_0)+y*y < (W_SSDboxlid/2.0)*(W_SSDboxlid/2.0);
+
+		boxlid = (boxlid_rect || boxlid_circ) && openingring;
+	}
+
+	// part 2: Inner side
+	
+	// vec{P} = (x_M,y_M,z_M) + t~*t_SSD*(a_x,a_y,a_z)
+	// hits (x-x_0)^2+y^2 = R_SSD^2 at t~ = t_hitsurface3_2 ?
+	// (x_M-x_0+t~*t_SSD*a_x)^2 + (y_M+t~*t_SSD*a_y) = R_SSD^2
+	// {(t_SSD*a_x)^2+(t_SSD*a_y)^2}*t~^2
+	// + {2*(x_M-x_0)*t_SSD*a_x+2*y_M*t_SSD*a_y}*t~
+	// + (x_M-x_0)^2 + y_M^2 - R_SSD^2
+
+	double coef_a = ((a_x*a_x) + (a_y*a_y))*t_SSD*t_SSD;
+	double coef_b = ((x_M-x_0)*a_x + y_M*a_y)*2.0*t_SSD;
+	double coef_c = (x_M-x_0)*(x_M-x_0) + y_M*y_M - R_SSD*R_SSD;
+
+	double t_hitsurface3_2 = solve_quad(coef_a,coef_b,coef_c);
+
+	double x = x_M + t_hitsurface3_2*t_SSD*a_x;
+	double y = y_M + t_hitsurface3_2*t_SSD*a_y;
+	double z = z_M + t_hitsurface3_2*t_SSD*a_z;
+
+	// -z_0 < z < H_SSDboxlid ?
+	bool inner_side = (-z_0 <= z) && (z <= H_SSDboxlid);
+
+	return boxlid || inner_side;
 }
 
 
 // Does the trajectory reach the SSD?
-bool reach_ssd (double x_M, double y_M, double z_M, double a_x, double a_y, double a_z){
+bool reach_ssd (double x_M, double y_M, double z_M, double a_x, double a_y, double a_z, double* par){
+	// The geometry of the BPM
+	double z_0 = par[0];
+	double R_MCP = par[1];
+	double SSDholder_back = par[2];
+	double W_SSDholder = par[3];
+	double H_SSDholder = par[4];
+	double SSDholder_front = par[5];
+	double W_SSDboxlid = par[6];
+	double R_SSD = par[7];
+	double H_SSDboxlid = par[8];
+
 	// The particle position is defined as
-	// vec{P} = (t*a_x, y_M + t*a_y, z_M + t*a_z)
-	
+	// vec{P} = (x_M+t~*t_SSD*a_x, y_M+t~*t_SSD*a_y, z_M+t~*t_SSD*a_z)
+	// The particle hits the surface z = -z_0 when t~ = 1
+	double t_s = t_SSD(z_M,a_z,z_0);
+
 	// Hit Component 1
-	bool hits_hitsurface1 = HitSurface1(x_M,y_M,z_M,a_x,a_y,a_z,R_MCP,T_lid);
-	//
-	//
+	bool hits_hitsurface1 = HitSurface1(x_M,y_M,z_M,a_x,a_y,a_z,t_s,R_MCP,T_lid);
+
+	// Hit Component 2
+	bool hits_hitsurface2 = HitSurface2(x_M,y_M,z_M,a_x,a_y,a_z,t_s,SSDholder_back,W_SSDholder,H_SSDholder,R_MCP,SSDholder_front);
+
+	// Hit Component 3
+	bool hits_hitsurface3 = HitSurface3(x_M,y_M,z_M,a_x,a_y,a_z,t_s,SSDholder_front,x_0,W_SSDboxlid,R_MCP,R_SSD,H_SSDboxlid);
+
+	// SSD Surface
+	bool hits_SSD = HitsSSD(x_M,y_M,z_M,a_x,a_y,a_z,t_s,z_0,x_0);
+
+	if (hits_hitsurface1){
+		return false;
+	}else if (hits_hitsurface2){
+		return false;
+	}else if (hits_hitsurface3){
+		return false;
+	}else if (hits_SSD){
+		return true;
+	}else{
+		return false;
+	}
 }
 
 
