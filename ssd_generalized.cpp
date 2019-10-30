@@ -41,6 +41,71 @@ double solve_quad (double a, double b, double c){
 }
 
 
+
+// Start: Alpha rays emitted at...
+// Returns trajectory as
+// (x_M,y_M,z_M,a_x,a_y,a_z) depending on the
+// emission surface
+
+// Case 1: from the MCP-IN surface
+double alpha_trajectory_1(const char* parameter,double* par){
+
+	double R_MCP = par[0]; // Radius of MCP-IN
+	double z_0 = par[5]; // z_0
+
+	// Based on SIMION simulation (20190814_01)
+	double centerX = -0.42909;
+	double centerY = 1.29343;
+	double stdevX = 2.44142;
+	double stdevY = 1.63478;
+//	cout << "Fr distribution = Nx(" << centerX << ", " << stdevX << ") X Ny(" << centerY << ", " << stdevY << ")" << endl;
+
+	random_device rnd;
+	default_random_engine engine(rnd());
+
+	normal_distribution<> randnorm(0.,1.);
+
+	normal_distribution<> randy(centerX,stdevX);
+	normal_distribution<> randz(centerY,stdevY);
+
+	// Define Fr on MCP-IN surface
+	double y_M, z_M;
+	double M = R_MCP + 1.0;
+	while (M > R_MCP){
+		y_M = randy(engine);
+		z_M = randz(engine);
+		M = TMath::Sqrt(y_M*y_M + z_M*z_M);
+	}
+
+	// Define alpha emitted direction
+	double a_x = randnorm(engine);
+	while (a_x <= 0.0){
+		a_x = randnorm(engine);
+	}
+	double a_y = randnorm(engine);
+	double a_z = randnorm(engine);
+	while (a_z == 0.0){
+		a_z = randnorm(engine);
+	}
+
+	if (parameter == "x_M"){
+		return 0.0;
+	}else if (parameter == "y_M"){
+		return y_M;
+	}else if (parameter == "z_M"){
+		return z_M;
+	}else if (parameter == "a_x"){
+		return a_x;
+	}else if (parameter == "a_y"){
+		return a_y;
+	}else if (parameter == "a_z"){
+		return a_z;
+	}else{
+		return -9999.;
+	}
+}
+
+
 // Goal: SSD surface
 // Returns t_SSD: where trajectory (x_M,y_M,z_M,a_x,a_y,a_z) penetrates the surface z = -z_0
 double t_SSD (double z_M, double a_z, double z_0){
@@ -51,7 +116,7 @@ double t_SSD (double z_M, double a_z, double z_0){
 	}
 }
 
-bool HitsSSD (double x_M, double y_M, double z_M, double a_x, double a_y, double a_z, double t_SSD, double z_0, double x_0){
+bool HitsSSD (double x_M, double y_M, double z_M, double a_x, double a_y, double a_z, double t_SSD, double x_0, double R_SSD){
 	// vec{P} = (x_M,y_M,z_M) + t_SSD*(a_x,a_y,a_z)
 	// is within (x-x_0)^2+y^2<R_SSD^2 ?
 	double x = x_M + t_SSD*a_x;
@@ -62,7 +127,7 @@ bool HitsSSD (double x_M, double y_M, double z_M, double a_x, double a_y, double
 
 // Hit Component 1: MCP lid side
 // Returns TRUE if trajectory (x_M,y_M,z_M,a_x,a_y,a_z) penetrates the surface
-bool HitSurface1 (double x_M, double y_M, double z_M, double a_x, double a_y, double a_z, double t_SSD, double R_MCP, double T_lid){
+bool HitSurface1 (double x_M, double y_M, double z_M, double a_x, double a_y, double a_z, double t_SSD, double R_MCP, double T_lid){	
 	// vec{P} = (x_M,y_M,z_M) + t~*t_SSD*(a_x,a_y,a_z)
 	// hits y^2+z^2 = R_MCP^2 at t~ = t_hitsurface1 ?
 	// (y_M+t~*t_SSD*a_y)^2 + (z_M+t~*t_SSD*a_z) = R_MCP^2
@@ -90,8 +155,7 @@ bool HitSurface1 (double x_M, double y_M, double z_M, double a_x, double a_y, do
 
 // Hit Component 2: SSD holder back + inner side
 // Returns TRUE if the trajectory (x_M,y_M,z_M,a_x,a_y,a_z) penetrates the surface
-bool HitSurface2 (double x_M, double y_M, double z_M, double a_x, double a_y, double a_z, double t_SSD, double SSDholder_back, double W_SSDholder, double H_SSDholder, double R_MCP, double SSDholder_front){
-	
+bool HitSurface2 (double x_M, double y_M, double z_M, double a_x, double a_y, double a_z, double t_SSD, double R_MCP, double SSDholder_front, double SSDholder_back, double W_SSDholder, double H_SSDholder){
 	// part 1: Holder back
 	
 	// vec{P} = (x_M,y_M,z_M) + t~*t_SSD*(a_x,a_y,a_z)
@@ -143,8 +207,7 @@ bool HitSurface2 (double x_M, double y_M, double z_M, double a_x, double a_y, do
 
 // Hit Component 3: SSD box lid + side
 // Returns TRUE if trajectory (x_M,y_M,z_M,a_x,a_y,a_z) penetrates the surface
-bool HitSurface3 (double x_M, double y_M, double z_M, double a_x, double a_y, double a_z, double t_SSD, double SSDholder_front, double x_0, double W_SSDboxlid, double R_MCP, double R_SSD, double H_SSDboxlid){
-
+bool HitSurface3 (double x_M, double y_M, double z_M, double a_x, double a_y, double a_z, double t_SSD, double R_SSD, double x_0, double z_0, double SSDholder_front, double W_SSDboxlid, double H_SSDboxlid){
 	// part 1: Box lid
 	
 	// vec{P} = (x_M,y_M,z_M) + t~*t_SSD*(a_x,a_y,a_z)
@@ -202,15 +265,19 @@ bool HitSurface3 (double x_M, double y_M, double z_M, double a_x, double a_y, do
 // Does the trajectory reach the SSD?
 bool reach_ssd (double x_M, double y_M, double z_M, double a_x, double a_y, double a_z, double* par){
 	// The geometry of the BPM
-	double z_0 = par[0];
-	double R_MCP = par[1];
-	double SSDholder_back = par[2];
-	double W_SSDholder = par[3];
-	double H_SSDholder = par[4];
-	double SSDholder_front = par[5];
-	double W_SSDboxlid = par[6];
-	double R_SSD = par[7];
-	double H_SSDboxlid = par[8];
+	double R_MCP = par[0]; // Radius of MCP-IN
+	double R_MCPlid = par[1]; // Outer radius of MCP lid
+	double R_SSD = par[2]; // Radius of hole on SSD box
+	double R_Am = par[3]; // R_Am:Radius of hole on Am box
+	double x_0 = par[4]; // SSDholder surface - R_SSD center
+	double z_0 = par[5]; // MCP center - SSD box surface
+	double T_lid = par[6]; // thickness of SSD box surface
+	double SSDholder_front = par[7]; // MCP-IN - SSDholder-upstream
+	double SSDholder_back = par[8]; // MCP-IN - SSDholder-downstream
+	double W_SSDholder = par[9]; // Width of SSD holder
+	double H_SSDholder = par[10]; // Height of SSD holder
+	double W_SSDboxlid = par[11]; // Width of SSD box
+	double H_SSDboxlid = par[12]; // Height of SSD box
 
 	// The particle position is defined as
 	// vec{P} = (x_M+t~*t_SSD*a_x, y_M+t~*t_SSD*a_y, z_M+t~*t_SSD*a_z)
@@ -221,13 +288,13 @@ bool reach_ssd (double x_M, double y_M, double z_M, double a_x, double a_y, doub
 	bool hits_hitsurface1 = HitSurface1(x_M,y_M,z_M,a_x,a_y,a_z,t_s,R_MCP,T_lid);
 
 	// Hit Component 2
-	bool hits_hitsurface2 = HitSurface2(x_M,y_M,z_M,a_x,a_y,a_z,t_s,SSDholder_back,W_SSDholder,H_SSDholder,R_MCP,SSDholder_front);
+	bool hits_hitsurface2 = HitSurface2(x_M,y_M,z_M,a_x,a_y,a_z,t_s,R_MCP,SSDholder_front,SSDholder_back,W_SSDholder,H_SSDholder);
 
 	// Hit Component 3
-	bool hits_hitsurface3 = HitSurface3(x_M,y_M,z_M,a_x,a_y,a_z,t_s,SSDholder_front,x_0,W_SSDboxlid,R_MCP,R_SSD,H_SSDboxlid);
+	bool hits_hitsurface3 = HitSurface3(x_M,y_M,z_M,a_x,a_y,a_z,t_s,R_SSD,x_0,z_0,SSDholder_front,W_SSDboxlid,H_SSDboxlid);
 
 	// SSD Surface
-	bool hits_SSD = HitsSSD(x_M,y_M,z_M,a_x,a_y,a_z,t_s,z_0,x_0);
+	bool hits_SSD = HitsSSD(x_M,y_M,z_M,a_x,a_y,a_z,t_s,x_0,R_SSD);
 
 	if (hits_hitsurface1){
 		return false;
@@ -243,6 +310,65 @@ bool reach_ssd (double x_M, double y_M, double z_M, double a_x, double a_y, doub
 }
 
 
+// Draw objects on upper half of canvas
+int draw_objects(double *par){
+
+	double R_MCP = par[0]; // Radius of MCP-IN
+	double R_MCPlid = par[1]; // Outer radius of MCP lid
+	double R_SSD = par[2]; // Radius of hole on SSD box
+	double R_Am = par[3]; // Radius of hole on Am box
+	double x_0 = par[4]; // SSDholder surface - R_SSD center
+	double z_0 = par[5]; // MCP center - SSD box surface
+	double T_lid = par[6]; // thickness of SSD box surface
+	double SSDholder_front = par[7]; // MCP-IN - SSDholder-upstream
+	double SSDholder_back = par[8]; // MCP-IN - SSDholder-downstream
+	double W_SSDholder = par[9]; // Width of SSD holder
+	double H_SSDholder = par[10]; // Height of SSD holder
+	double W_SSDboxlid = par[11]; // Width of SSD box
+	double H_SSDboxlid = par[12]; // Height of SSD box
+
+	// Draw MCP
+	int mcp_points = 1000;
+	TPolyLine3D *mcp = new TPolyLine3D(mcp_points);
+	for (int k = 0; k < mcp_points; ++k){
+		mcp->SetPoint(k, 0.0, R_MCP*TMath::Cos(2.*double(k)*TMath::Pi()/double(mcp_points-1)), R_MCP*TMath::Sin(2.*double(k)*TMath::Pi()/double(mcp_points-1)));
+	}
+	mcp->SetLineWidth(3);
+	mcp->SetLineColor(4);
+	mcp->Draw("SAME F");
+
+	//Draw SSD Holder Hole (upper surface)
+	int holder_points = 1000;
+	TPolyLine3D *holder_u = new TPolyLine3D(holder_points);
+	for (int k = 0; k < holder_points; ++k){
+		holder_u->SetPoint(k, x_0+R_SSD*TMath::Cos(2.*double(k)*TMath::Pi()/double(holder_points-1)), R_SSD*TMath::Sin(2.*double(k)*TMath::Pi()/double(holder_points-1)), -H_SSDboxlid);
+	}
+	holder_u->SetLineWidth(3);
+	holder_u->SetLineColor(3);
+	holder_u->Draw("SAME");
+
+	//Draw SSD Holder Hole (lower surface)
+	TPolyLine3D *holder_l = new TPolyLine3D(holder_points);
+	for (int k = 0; k < holder_points; ++k){
+		holder_l->SetPoint(k, x_0+R_SSD*TMath::Cos(2.*double(k)*TMath::Pi()/double(holder_points-1)), R_SSD*TMath::Sin(2.*double(k)*TMath::Pi()/double(holder_points-1)), -z_0);
+	}
+	holder_l->SetLineWidth(3);
+	holder_l->SetLineColor(3);
+	holder_l->Draw("SAME");
+
+
+	TPad *p1 = new TPad("p1","p1",0.0,0.0,1.0,1.0,0,0,0);
+	p1->Draw();
+	p1->cd();
+	
+//	TView *view = TView::CreateView(1);
+//	view->SetRange(-5.,-M_W/2.0 - 5.,-5.,x_0+R_SSD+5.,M_W/2.0 + 5.,M_H + 5.);
+
+	return 0;
+}
+
+
+
 
 int main(int argc, char** argv){
 
@@ -255,11 +381,6 @@ int main(int argc, char** argv){
 	int N_Fr = 100; // for testing
         int N_Average = 60; // 1 min average
 	cout << "Flying " << N_Fr << " alpha particles from the mesh." << endl;
-
-	double z_l = 1.0; // Thickness of the SSD lid
-	double R_SSD = 6.5; // Radius of the hole on the SSD lid
-	double R_MCP = 14.0; // Radius of the MCP-IN
-	double T_lid = 3.5; // Thickness of the MCP lid from the MCP surface
 
 	// BPM geometry parameters
 	double geometry[13];
@@ -279,60 +400,16 @@ int main(int argc, char** argv){
 
 
 
-	// Based on SIMION simulation (20190814_01)
-	double centerX = -0.42909;
-	double centerY = 1.29343;
-	double stdevX = 2.44142;
-	double stdevY = 1.63478;
-	cout << "Fr distribution = Nx(" << centerX << ", " << stdevX << ") X Ny(" << centerY << ", " << stdevY << ")" << endl;
-
-	// Geometrical variable of the BPM
-	double z_0 = 24.0;
-	double x_0 = 30.4;
 	// for CYRIC TOF BPM
 //	double z_0 = 29.0;
 //	double x_0 = 33.0;
 
-	cout << "z_0 = " << z_0 << " mm, x_0 = " << x_0 << " mm" << endl;
+//	cout << "z_0 = " << z_0 << " mm, x_0 = " << x_0 << " mm" << endl;
 
         c1->cd(1);
 
-	// Draw MCP
-	int mcp_points = 1000;
-	TPolyLine3D *mcp = new TPolyLine3D(mcp_points);
-	for (int k = 0; k < mcp_points; ++k){
-		mcp->SetPoint(k, 0.0, R_MCP*TMath::Cos(2.*double(k)*TMath::Pi()/double(mcp_points-1)), z_0+R_MCP*TMath::Sin(2.*double(k)*TMath::Pi()/double(mcp_points-1)));
-	}
-	mcp->SetLineWidth(3);
-	mcp->SetLineColor(4);
-	mcp->Draw("SAME F");
+	draw_objects(geometry);
 
-	//Draw SSD Holder Hole (upper surface)
-	int holder_points = 1000;
-	TPolyLine3D *holder_u = new TPolyLine3D(holder_points);
-	for (int k = 0; k < holder_points; ++k){
-		holder_u->SetPoint(k, x_0+R_SSD*TMath::Cos(2.*double(k)*TMath::Pi()/double(holder_points-1)), R_SSD*TMath::Sin(2.*double(k)*TMath::Pi()/double(holder_points-1)), z_l);
-	}
-	holder_u->SetLineWidth(3);
-	holder_u->SetLineColor(3);
-	holder_u->Draw("SAME");
-
-	//Draw SSD Holder Hole (lower surface)
-	TPolyLine3D *holder_l = new TPolyLine3D(holder_points);
-	for (int k = 0; k < holder_points; ++k){
-		holder_l->SetPoint(k, x_0+R_SSD*TMath::Cos(2.*double(k)*TMath::Pi()/double(holder_points-1)), R_SSD*TMath::Sin(2.*double(k)*TMath::Pi()/double(holder_points-1)), 0.);
-	}
-	holder_l->SetLineWidth(3);
-	holder_l->SetLineColor(3);
-	holder_l->Draw("SAME");
-
-
-	TPad *p1 = new TPad("p1","p1",0.0,0.0,1.0,1.0,0,0,0);
-	p1->Draw();
-	p1->cd();
-	
-//	TView *view = TView::CreateView(1);
-//	view->SetRange(-5.,-M_W/2.0 - 5.,-5.,x_0+R_SSD+5.,M_W/2.0 + 5.,M_H + 5.);
 
 	TGraph2D *traj = new TGraph2D();
 	traj->SetName("traj");
@@ -342,84 +419,52 @@ int main(int argc, char** argv){
 	double detection = 0.0;
 	double detect_sq = 0.0;
 
-	random_device rnd;
-	default_random_engine engine(rnd());
-
-	normal_distribution<> randnorm(0.,1.);
-
-	normal_distribution<> randy(centerX,stdevX);
-	normal_distribution<> randz(centerY+z_0,stdevY);
 
         int N_Detected = 0;
 	for (int j = 0; j < N_Average; ++j){
 		for (int i = 0; i < N_Fr; ++i){
 
-			// Define Fr on MCP-IN surface
-			double y_M, z_M;
-			double M = R_MCP + 1.0;
-			while (M > R_MCP){
-				y_M = randy(engine);
-				z_M = randz(engine);
-				double y_mm = y_M;
-				double z_mm = z_M - z_0;
-				M = TMath::Sqrt(y_mm*y_mm + z_mm*z_mm);
-			}
+			double x_M = alpha_trajectory_1("x_M",geometry);
+			double y_M = alpha_trajectory_1("y_M",geometry);
+			double z_M = alpha_trajectory_1("z_M",geometry);
+			double a_x = alpha_trajectory_1("a_x",geometry);
+			double a_y = alpha_trajectory_1("a_y",geometry);
+			double a_z = alpha_trajectory_1("a_z",geometry);
 
-			// Define alpha emitted direction
-			double a_x = randnorm(engine);
-			while (a_x <= 0.0){
-				a_x = randnorm(engine);
-			}
-			double a_y = randnorm(engine);
-			double a_z = randnorm(engine);
-			while (a_z == 0.0){
-				a_z = randnorm(engine);
-			}
-
-			// Check if alpha hits upper lid
-			double t_u = (z_l - z_M)/a_z;
-			double x_u = t_u * a_x;
-			double y_u = y_M + t_u * a_y;
-			double lid_upper = (x_u-x_0)*(x_u-x_0) + y_u*y_u - R_SSD*R_SSD;
-	
-			// Check if alpha hits lower lid
-			double t_l = -z_M/a_z;
-			double x_l = t_l * a_x;
-			double y_l = y_M + t_l * a_y;
-			double lid_lower = (x_l-x_0)*(x_l-x_0) + y_l*y_l - R_SSD*R_SSD;
+//			double x_M = 0.0;
+//			double y_M = 0.0;
+//			double z_M = 0.0;
+//			double a_x = 0.0;
+//			double a_y = 0.0;
+//			double a_z = 0.0;
 
 
-
-			// Draw hit trajectories for the 1st sample
-                        if (j == 0){
-				double t = TMath::Sqrt(z_0*z_0 + x_0*x_0); // mm
-				double x_t = a_x*t;
-				double y_t = a_y*t + y_M;
-				double z_t = a_z*t + z_M;
-
-				TPolyLine3D *trajectory = new TPolyLine3D(-1);
-				trajectory->SetPoint(0,0.0,y_M,z_M);
-				trajectory->SetPoint(1,x_t,y_t,z_t);
-				trajectory->SetLineWidth(1);
-//				trajectory->SetLineStyle(2);
-//				trajectory->Draw("SAME");
-				if ((lid_upper<0.0)&&(lid_lower<0.0)){
-					trajectory->SetLineColor(2);
-					traj->SetPoint(2*N_Detected,0.0,y_M,z_M);
-					traj->SetPoint(2*N_Detected+1,x_l,y_l,0.0);
-					trajectory->Draw("SAME");
-				}
-			}
-	
+			bool alpha_detected = reach_ssd(x_M,y_M,z_M,a_x,a_y,a_z,geometry);
+//			bool alpha_detected = false;
 
 			// Detection
-			if ((lid_upper<0.0)&&(lid_lower<0.0)){
+			if (alpha_detected){
 				++N_Detected;
+				// Draw hit trajectories for all samples
+                        	if (j > -1){
+					double t = t_SSD(z_M,a_z,geometry[5]);
+					double x_t = a_x*t + x_M;
+					double y_t = a_y*t + y_M;
+					double z_t = a_z*t + z_M;
+
+					TPolyLine3D *trajectory = new TPolyLine3D(-1);
+					trajectory->SetLineWidth(1);
+					trajectory->SetLineColor(2);
+					traj->SetPoint(2*N_Detected,x_M,y_M,z_M);
+					traj->SetPoint(2*N_Detected+1,x_t,y_t,z_t);
+					trajectory->Draw();
+				}
 			}
 		}
 		detection += double(N_Detected)/double(N_Fr);
 		detect_sq += double(N_Detected)*double(N_Detected)/(double(N_Fr)*double(N_Fr));
 		N_Detected = 0;
+		cout << j << " sets run" << endl;
 	}
 
         detection /= double(N_Average);
@@ -428,27 +473,28 @@ int main(int argc, char** argv){
 	double dete_StDev = TMath::Sqrt(detect_sq - (detection*detection));
 	cout << 100.*detection << " +- " << 100.*dete_StDev << "% entered the SSD holder." << endl;
 
+
 	traj->Draw("SAME,P0,ah,fb,bb");
-	traj->GetXaxis()->SetLimits(-5.,x_0+R_SSD+5.);
-	traj->GetYaxis()->SetLimits(-R_MCP-5.,R_MCP+5.);
-	traj->GetZaxis()->SetLimits(-5.,R_MCP+5.);
+	traj->GetXaxis()->SetLimits(-5.,geometry[4]+geometry[2]+5.);
+	traj->GetYaxis()->SetLimits(-geometry[0]-5.,geometry[0]+5.);
+	traj->GetZaxis()->SetLimits(-5.,geometry[0]+5.);
 
 
 
 	c1->cd(2);
 
-	double geoeff = 100.*solidangle(z_0,x_0,R_SSD)/(2.0*TMath::Pi());
+	double geoeff = 100.*solidangle(geometry[5],geometry[4],geometry[2])/(2.0*TMath::Pi());
+
 
 	TLatex l;
 	l.SetTextAlign(12);
 	l.SetTextSize(0.05);
-	l.DrawLatex(0.15,0.9,Form("SSD Holder position: (z_{0}, x_{0}) = (%g, %g) [mm]",z_0,x_0));
+	l.DrawLatex(0.15,0.9,Form("SSD Holder position: (z_{0}, x_{0}) = (%g, %g) [mm]",geometry[5],geometry[4]));
 	l.DrawLatex(0.15,0.8,Form("%d #alpha particles flown %d times in upstream direction",N_Fr,N_Average));
 	l.DrawLatex(0.15,0.7,"#alpha initial position distribution on MCP:");
-	l.DrawLatex(0.25,0.6,Form("N_{x}(%g, %g) #times N_{y}(%g, %g)",centerX,stdevX,centerY,stdevY));
+//	l.DrawLatex(0.25,0.6,Form("N_{x}(%g, %g) #times N_{y}(%g, %g)",centerX,stdevX,centerY,stdevY));
 	l.DrawLatex(0.15,0.5,Form("%g #pm %g %% of them reached the Si detector.",100.*detection,100.*dete_StDev));
 	l.DrawLatex(0.15,0.4,Form("For reference: (Solid angle)/(2#pi) = %g %%",geoeff));
-
 
 
 	c1->Update();

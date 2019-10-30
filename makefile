@@ -7,4 +7,5 @@ trajectory:	ssd_trajectory.cpp
 randtest:	random_tester.cpp
 	`root-config --cxx --cflags` -o randtest random_tester.cpp `root-config --glibs`
 
-
+generalized:	ssd_generalized.cpp
+	`root-config --cxx --cflags` -o generalized ssd_generalized.cpp `root-config --glibs`
