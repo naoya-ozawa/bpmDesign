@@ -66,13 +66,40 @@ double solve_quad (double a, double b, double c){
 double alpha_trajectory_1(const char* parameter,double* par){
 
 	double R_MCP = par[0]; // Radius of MCP-IN
+	double R_SSD = par[2];
+	double x_0 = par[4];
 	double z_0 = par[5]; // z_0
 
-	// Based on SIMION simulation (20190814_01)
-	double centerX = -0.42909;
-	double centerY = 1.29343;
-	double stdevX = 2.44142;
-	double stdevY = 1.63478;
+//	// Based on SIMION simulation (online-3mmCentered-3kV-2810V.pdf)
+//	double centerX = -0.481228;
+//	double centerY = -0.433211;
+//	double stdevX = 2.88206;
+//	double stdevY = 3.24264;
+//	// Based on SIMION simulation (online-2.5mmCentered-3kV-2810V.pdf)
+//	double centerX = -0.511427;
+//	double centerY = -0.320229;
+//	double stdevX = 2.50386;
+//	double stdevY = 2.74055;
+//	// Based on SIMION simulation (online-2mmCentered-3kV-2810V.pdf)
+//	double centerX = -0.453525;
+//	double centerY = 0.0106807;
+//	double stdevX = 2.13472;
+//	double stdevY = 2.15487;
+//	// Based on SIMION simulation (online-1.5mmCentered-3kV-2810V.pdf)
+//	double centerX = -0.450175;
+//	double centerY = 0.165801;
+//	double stdevX = 1.79913;
+//	double stdevY = 1.59912;
+//	// Based on SIMION simulation (online-1mmCentered-3kV-2810V.pdf)
+//	double centerX = -0.476828;
+//	double centerY = 0.320813;
+//	double stdevX = 1.55944;
+//	double stdevY = 1.17039;
+	// Based on SIMION simulation (online-0.5mmCentered-3kV-2810V.pdf)
+	double centerX = -0.476919;
+	double centerY = 0.408884;
+	double stdevX = 1.41096;
+	double stdevY = 0.848104;
 //	cout << "Fr distribution = Nx(" << centerX << ", " << stdevX << ") X Ny(" << centerY << ", " << stdevY << ")" << endl;
 
 
@@ -101,6 +128,11 @@ double alpha_trajectory_1(const char* parameter,double* par){
 		a_z = randnorm(engine);
 	}
 
+	// Calculate approximate solid angle
+	double theta = TMath::ATan(R_SSD/TMath::Sqrt(x_0*x_0 + z_0*z_0));
+	double alpha = TMath::ATan(z_0/x_0);
+	double sa = 2.*TMath::Pi()*(1. - TMath::Cos(theta))*TMath::Cos(alpha);
+
 	if (parameter == "x_M"){
 		return 0.0;
 	}else if (parameter == "y_M"){
@@ -114,7 +146,7 @@ double alpha_trajectory_1(const char* parameter,double* par){
 	}else if (parameter == "a_z"){
 		return a_z;
 	}else{
-		return -9999.;
+		return sa;
 	}
 }
 
@@ -677,22 +709,22 @@ int main(int argc, char** argv){
 
 
 
-			double x_M = alpha_trajectory_5("x_M",geometry);
+			double x_M = alpha_trajectory_1("x_M",geometry);
 			x_mean += x_M;
 			x_sqmn += x_M*x_M;
-			double y_M = alpha_trajectory_5("y_M",geometry);
+			double y_M = alpha_trajectory_1("y_M",geometry);
 			y_mean += y_M;
 			y_sqmn += y_M*y_M;
-			double z_M = alpha_trajectory_5("z_M",geometry);
+			double z_M = alpha_trajectory_1("z_M",geometry);
 			z_mean += z_M;
 			z_sqmn += z_M*z_M;
-			double a_x = alpha_trajectory_5("a_x",geometry);
-			double a_y = alpha_trajectory_5("a_y",geometry);
-			double a_z = alpha_trajectory_5("a_z",geometry);
+			double a_x = alpha_trajectory_1("a_x",geometry);
+			double a_y = alpha_trajectory_1("a_y",geometry);
+			double a_z = alpha_trajectory_1("a_z",geometry);
 			ax_mean += nmvec(a_x,a_y,a_z,"x");
 			ay_mean += nmvec(a_x,a_y,a_z,"y");
 			az_mean += nmvec(a_x,a_y,a_z,"z");
-			sa = alpha_trajectory_5("",geometry);
+			sa = alpha_trajectory_1("",geometry);
 
 //			double x_M = 0.0;
 //			double y_M = 0.0;
