@@ -150,6 +150,62 @@ double alpha_trajectory_1(const char* parameter,double* par){
 	}
 }
 
+// Case 2: from the MCP lid surface
+double alpha_trajectory_2(const char* parameter,double* par){
+
+	double R_MCP = par[0]; // Radius of MCP-IN
+	double R_SSD = par[2];
+	double x_0 = par[4];
+	double z_0 = par[5]; // z_0
+	double T_lid = par[6];
+
+//	cout << "Fr distribution = Nx(" << centerX << ", " << stdevX << ") X Ny(" << centerY << ", " << stdevY << ")" << endl;
+
+	normal_distribution<> randnorm(0.,1.);
+
+	uniform_real_distribution<> randy(-25.,25.);
+	uniform_real_distribution<> randz(-25.,25.);
+
+	// Define Fr on MCP-IN surface
+	double y_M, z_M;
+	double M = R_MCP + 1.0;
+	while (true){
+		y_M = randy(engine);
+		z_M = randz(engine);
+		M = TMath::Sqrt(y_M*y_M + z_M*z_M);
+		if (M > R_MCP) break;
+	}
+
+	// Define alpha emitted direction
+	double a_x = randnorm(engine);
+	while (a_x <= 0.0){
+		a_x = randnorm(engine);
+	}
+	double a_y = randnorm(engine);
+	double a_z = randnorm(engine);
+
+	// Calculate approximate solid angle
+	double theta = TMath::ATan(R_SSD/TMath::Sqrt(x_0*x_0 + 2.*z_0*2.*z_0));
+	double alpha = TMath::ATan(2.*z_0/x_0);
+	double sa = 2.*TMath::Pi()*(1. - TMath::Cos(theta))*TMath::Cos(alpha);
+
+	if (parameter == "x_M"){
+		return T_lid;
+	}else if (parameter == "y_M"){
+		return y_M;
+	}else if (parameter == "z_M"){
+		return z_M;
+	}else if (parameter == "a_x"){
+		return a_x;
+	}else if (parameter == "a_y"){
+		return a_y;
+	}else if (parameter == "a_z"){
+		return a_z;
+	}else{
+		return sa;
+	}
+}
+
 // Case 5: From the Am source
 double alpha_trajectory_5 (const char* parameter, double *par){
 	normal_distribution<double> randnorm(0.,1.);
@@ -709,22 +765,22 @@ int main(int argc, char** argv){
 
 
 
-			double x_M = alpha_trajectory_1("x_M",geometry);
+			double x_M = alpha_trajectory_2("x_M",geometry);
 			x_mean += x_M;
 			x_sqmn += x_M*x_M;
-			double y_M = alpha_trajectory_1("y_M",geometry);
+			double y_M = alpha_trajectory_2("y_M",geometry);
 			y_mean += y_M;
 			y_sqmn += y_M*y_M;
-			double z_M = alpha_trajectory_1("z_M",geometry);
+			double z_M = alpha_trajectory_2("z_M",geometry);
 			z_mean += z_M;
 			z_sqmn += z_M*z_M;
-			double a_x = alpha_trajectory_1("a_x",geometry);
-			double a_y = alpha_trajectory_1("a_y",geometry);
-			double a_z = alpha_trajectory_1("a_z",geometry);
+			double a_x = alpha_trajectory_2("a_x",geometry);
+			double a_y = alpha_trajectory_2("a_y",geometry);
+			double a_z = alpha_trajectory_2("a_z",geometry);
 			ax_mean += nmvec(a_x,a_y,a_z,"x");
 			ay_mean += nmvec(a_x,a_y,a_z,"y");
 			az_mean += nmvec(a_x,a_y,a_z,"z");
-			sa = alpha_trajectory_1("",geometry);
+			sa = alpha_trajectory_2("",geometry);
 
 //			double x_M = 0.0;
 //			double y_M = 0.0;
