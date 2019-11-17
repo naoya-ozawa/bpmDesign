@@ -12,6 +12,9 @@
 #include <TRint.h>
 
 using namespace std;
+// Introduce a global random number engine
+random_device r;
+default_random_engine engine(r());
 
 // Simple solid angle for reference
 double solidangle(double z_0, double x_0, double R_SSD){
@@ -24,6 +27,20 @@ double solidangle(double z_0, double x_0, double R_SSD){
 	double Sr = 2.0 * TMath::Pi() *  (1.0 - cosine);
 
 	return Sr;
+}
+
+// Normalized 3d-vector
+double nmvec(double xx,double yy,double zz,const char* axis){
+	double sumsq = xx*xx + yy*yy + zz*zz;
+	if (axis == "x"){
+		return xx/TMath::Sqrt(sumsq);
+	}else if (axis == "y"){
+		return yy/TMath::Sqrt(sumsq);
+	}else if (axis == "z"){
+		return zz/TMath::Sqrt(sumsq);
+	}else{
+		return 0;
+	}
 }
 
 // Solver for ax^2 + bx + c = 0 (0 <= x <= 1)
@@ -58,8 +75,6 @@ double alpha_trajectory_1(const char* parameter,double* par){
 	double stdevY = 1.63478;
 //	cout << "Fr distribution = Nx(" << centerX << ", " << stdevX << ") X Ny(" << centerY << ", " << stdevY << ")" << endl;
 
-	random_device rnd;
-	default_random_engine engine(rnd());
 
 	normal_distribution<> randnorm(0.,1.);
 
@@ -103,6 +118,49 @@ double alpha_trajectory_1(const char* parameter,double* par){
 	}
 }
 
+// Case 5: From the Am source
+double alpha_trajectory_5 (const char* parameter, double *par){
+	normal_distribution<double> randnorm(0.,1.);
+	uniform_real_distribution<double> randx(par[4]-par[3],par[4]+par[3]);
+	uniform_real_distribution<double> randy(-par[3],par[3]);
+
+	// Define alpha on Am box lid
+	double R = par[3] + 1.0;
+	double x_M, y_M;
+	while (R >= par[3]){
+		x_M = randx(engine);
+		y_M = randy(engine);
+		R = TMath::Sqrt((x_M-par[4])*(x_M-par[4]) + y_M*y_M);
+	}
+	double z_M = par[5];
+	double a_x = randnorm(engine);
+	double a_y = randnorm(engine);
+	double a_z;
+	while (a_z >= 0.0){
+		a_z = randnorm(engine);
+	}
+//			double a_x = 0.0;
+//			double a_y = 0.0;
+
+	// Calculate the simple Sr approximation
+	double solid_angle = 2.*TMath::Pi() * (1. - TMath::Cos(TMath::ATan(par[2]/(2.*par[5]))));
+
+	if (parameter == "x_M"){
+		return x_M;
+	}else if (parameter == "y_M"){
+		return y_M;
+	}else if (parameter == "z_M"){
+		return z_M;
+	}else if (parameter == "a_x"){
+		return a_x;
+	}else if (parameter == "a_y"){
+		return a_y;
+	}else if (parameter == "a_z"){
+		return a_z;
+	}else{
+		return solid_angle*100./(4.*TMath::Pi());
+	}
+}
 
 // Goal: SSD surface
 // Returns t_SSD: where trajectory (x_M,y_M,z_M,a_x,a_y,a_z) penetrates the surface z = -z_0
@@ -291,11 +349,11 @@ bool HitSurface4 (double x_M, double y_M, double z_M, double a_x, double a_y, do
 	// part 2: Inner side
 
 	// vec{P} = (x_M,y_M,z_M) + t~*t_SSD*(a_x,a_y,a_z)
-	// hits (x-x_0)^2+y^2 = R_SSD^2 at t~ = t_hitsurface3_2 ?
-	// (x_M-x_0+t~*t_SSD*a_x)^2 + (y_M+t~*t_SSD*a_y) = R_SSD^2
+	// hits (x-x_0)^2+y^2 = R_Am^2 at t~ = t_hitsurface3_2 ?
+	// (x_M-x_0+t~*t_SSD*a_x)^2 + (y_M+t~*t_SSD*a_y) = R_Am^2
 	// {(t_SSD*a_x)^2+(t_SSD*a_y)^2}*t~^2
 	// + {2*(x_M-x_0)*t_SSD*a_x+2*y_M*t_SSD*a_y}*t~
-	// + (x_M-x_0)^2 + y_M^2 - R_SSD^2
+	// + (x_M-x_0)^2 + y_M^2 - R_Am^2
 
 	double coef_a = ((a_x*a_x) + (a_y*a_y))*t_SSD*t_SSD;
 	double coef_b = ((x_M-x_0)*a_x + y_M*a_y)*2.0*t_SSD;
@@ -308,7 +366,7 @@ bool HitSurface4 (double x_M, double y_M, double z_M, double a_x, double a_y, do
 	double z = z_M + t_hitsurface4_2*t_SSD*a_z;
 
 	// H_SSDboxlid < z < z_0 ?
-	bool inner_side = (H_SSDboxlid <= z) && (z <= z_0);
+	bool inner_side = (z > H_SSDboxlid) && (z < z_0);
 
 	return boxlid || inner_side;
 }
@@ -511,10 +569,10 @@ int main(int argc, char** argv){
 	TCanvas *c1 = new TCanvas();
 	c1->Divide(1,2);
 
-//	int N_Fr = 10000000; // 10^7 per sec.
-	int N_Fr = 1000; // for testing
-  int N_Average = 100; // 1 min average
-	cout << "Flying " << N_Fr << " alpha particles from the mesh." << endl;
+	int N_Fr = 100000; // 10^5 per sec.
+//	int N_Fr = 10; // for testing
+  int N_Average = 180; // 3 min average
+	cout << "Flying " << N_Fr << " alpha particles " << N_Average << " times." << endl;
 
 	// BPM geometry parameters
 	double geometry[13];
@@ -532,8 +590,6 @@ int main(int argc, char** argv){
 	geometry[11] = 28.0; // W_SSDboxlid:Width of SSD box
 	geometry[12] = 23.0; // H_SSDboxlid:Height of SSD box
 
-
-
 	// for CYRIC TOF BPM
 //	double z_0 = 29.0;
 //	double x_0 = 33.0;
@@ -543,7 +599,7 @@ int main(int argc, char** argv){
   c1->cd(1);
 
 	draw_objects(geometry);
-
+	double sa = 0.0; // calculated solid angle
 
 	TGraph2D *g_traj = new TGraph2D();
 	g_traj->SetName("traj");
@@ -552,28 +608,47 @@ int main(int argc, char** argv){
 	double detection = 0.0;
 	double detect_sq = 0.0;
 
+	int N_Detected;
+	int tot_detected = 0;
+	double x_mm = 0.0;
+	double y_mm = 0.0;
+	double z_mm = 0.0;
+	double x_stdv = 0.0;
+	double y_stdv = 0.0;
+	double z_stdv = 0.0;
+	double ax_mm = 0.0;
+	double ay_mm = 0.0;
+	double az_mm = 0.0;
+
 	// Based on SIMION simulation (20190814_01)
 //	double centerX = -0.42909;
 //	double centerY = 1.29343;
 //	double stdevX = 2.44142;
 //	double stdevY = 1.63478;
-	double stdevX = 3.0;
-	double stdevY = 3.0;
 //	cout << "Fr distribution = Nx(" << centerX << ", " << stdevX << ") X Ny(" << centerY << ", " << stdevY << ")" << endl;
 
-	random_device rnd;
-	default_random_engine engine(rnd());
+//	random_device rnd;
+//	default_random_engine engine(rnd());
 
-	normal_distribution<> randnorm(0.,1.);
+//	normal_distribution<> randnorm(0.,1.);
 
 //	normal_distribution<> randy(centerX,stdevX);
 //	normal_distribution<> randz(centerY,stdevY);
 
-	normal_distribution<> randx(geometry[4],stdevX);
-	normal_distribution<> randy(0.0,stdevY);
+//	normal_distribution<> randx(geometry[4],stdevX);
+//	normal_distribution<> randy(0.0,stdevY);
 
-  int N_Detected = 0;
 	for (int j = 0; j < N_Average; ++j){
+		N_Detected = 0;
+		double x_mean = 0.0;
+		double x_sqmn = 0.0;
+		double y_mean = 0.0;
+		double y_sqmn = 0.0;
+		double z_mean = 0.0;
+		double z_sqmn = 0.0;
+		double ax_mean = 0.0;
+		double ay_mean = 0.0;
+		double az_mean = 0.0;
 		for (int i = 0; i < N_Fr; ++i){
 
 
@@ -588,10 +663,6 @@ int main(int argc, char** argv){
 //				M = TMath::Sqrt(y_M*y_M + z_M*z_M);
 //			}
 
-			// Define alpha on Am box lid
-			double x_M = randx(engine);
-			double y_M = randy(engine);
-			double z_M = geometry[5];
 
 			// Define alpha emitted direction
 //			double a_x = randnorm(engine);
@@ -604,23 +675,24 @@ int main(int argc, char** argv){
 //				a_z = randnorm(engine);
 //			}
 
-			double a_x = randnorm(engine);
-			double a_y = randnorm(engine);
-//			double a_z = randnorm(engine);
-//			while (a_z >= 0.0){
-//				a_z = randnorm(engine);
-//			}
-//			double a_x = 0.0;
-//			double a_y = 0.0;
-			double a_z = -1.0;
 
 
-//			double x_M = alpha_trajectory_1("x_M",geometry);
-//			double y_M = alpha_trajectory_1("y_M",geometry);
-//			double z_M = alpha_trajectory_1("z_M",geometry);
-//			double a_x = alpha_trajectory_1("a_x",geometry);
-//			double a_y = alpha_trajectory_1("a_y",geometry);
-//			double a_z = alpha_trajectory_1("a_z",geometry);
+			double x_M = alpha_trajectory_5("x_M",geometry);
+			x_mean += x_M;
+			x_sqmn += x_M*x_M;
+			double y_M = alpha_trajectory_5("y_M",geometry);
+			y_mean += y_M;
+			y_sqmn += y_M*y_M;
+			double z_M = alpha_trajectory_5("z_M",geometry);
+			z_mean += z_M;
+			z_sqmn += z_M*z_M;
+			double a_x = alpha_trajectory_5("a_x",geometry);
+			double a_y = alpha_trajectory_5("a_y",geometry);
+			double a_z = alpha_trajectory_5("a_z",geometry);
+			ax_mean += nmvec(a_x,a_y,a_z,"x");
+			ay_mean += nmvec(a_x,a_y,a_z,"y");
+			az_mean += nmvec(a_x,a_y,a_z,"z");
+			sa = alpha_trajectory_5("",geometry);
 
 //			double x_M = 0.0;
 //			double y_M = 0.0;
@@ -640,6 +712,7 @@ int main(int argc, char** argv){
 			// Detection
 			if (alpha_detected){
 				++N_Detected;
+				++tot_detected;
 				// Draw hit trajectories for all samples
         if (j > -1){
 					double t = t_SSD(z_M,a_z,geometry[5]);
@@ -649,9 +722,9 @@ int main(int argc, char** argv){
 					TPolyLine3D *trajectory = new TPolyLine3D(-1);
 					trajectory->SetLineWidth(1);
 					trajectory->SetLineColor(2);
-					g_traj->SetPoint(2*(N_Detected-1),x_M,y_M,z_M);
+					g_traj->SetPoint(2*(tot_detected-1),x_M,y_M,z_M);
 					trajectory->SetPoint(0,x_M,y_M,z_M);
-					g_traj->SetPoint(2*(N_Detected-1)+1,x_t,y_t,z_t);
+					g_traj->SetPoint(2*(tot_detected-1)+1,x_t,y_t,z_t);
 					trajectory->SetPoint(1,x_t,y_t,z_t);
 					trajectory->Draw();
 				}
@@ -659,16 +732,40 @@ int main(int argc, char** argv){
 		}
 		detection += double(N_Detected)/double(N_Fr);
 		detect_sq += double(N_Detected)*double(N_Detected)/(double(N_Fr)*double(N_Fr));
-		N_Detected = 0;
-		cout << j << " sets run" << endl;
+		x_mean /= double(N_Fr);
+		x_sqmn /= double(N_Fr);
+		x_mm += x_mean;
+		x_stdv += TMath::Sqrt(x_sqmn - x_mean*x_mean);
+		y_mean /= double(N_Fr);
+		y_sqmn /= double(N_Fr);
+		y_mm += y_mean;
+		y_stdv += TMath::Sqrt(y_sqmn - y_mean*y_mean);
+		z_mean /= double(N_Fr);
+		z_sqmn /= double(N_Fr);
+		z_mm += z_mean;
+		z_stdv += TMath::Sqrt(z_sqmn - z_mean*z_mean);
+		ax_mean /= double(N_Fr);
+		ay_mean /= double(N_Fr);
+		az_mean /= double(N_Fr);
+		ax_mm += ax_mean;
+		ay_mm += ay_mean;
+		az_mm += az_mean;
+//		cout << j << " sets run" << endl;
 	}
 
   detection /= double(N_Average);
 	detect_sq /= double(N_Average);
-
 	double dete_StDev = TMath::Sqrt(detect_sq - (detection*detection));
 	cout << 100.*detection << " +- " << 100.*dete_StDev << "% entered the SSD holder." << endl;
-
+	x_mm /= double(N_Average);
+	x_stdv /= double(N_Average);
+	y_mm /= double(N_Average);
+	y_stdv /= double(N_Average);
+	z_mm /= double(N_Average);
+	z_stdv /= double(N_Average);
+	ax_mm /= double(N_Average);
+	ay_mm /= double(N_Average);
+	az_mm /= double(N_Average);
 
 	g_traj->Draw("SAME,P0,ah,fb,bb");
 	g_traj->GetXaxis()->SetLimits(-10.,geometry[4]+geometry[2]+10.);
@@ -679,18 +776,17 @@ int main(int argc, char** argv){
 
 	c1->cd(2);
 
-	double geoeff = 100.*solidangle(geometry[5],geometry[4],geometry[2])/(2.0*TMath::Pi());
-
-
 	TLatex l;
 	l.SetTextAlign(12);
 	l.SetTextSize(0.05);
-	l.DrawLatex(0.15,0.9,Form("SSD Holder position: (z_{0}, x_{0}) = (%g, %g) [mm]",geometry[5],geometry[4]));
-	l.DrawLatex(0.15,0.8,Form("%d #alpha particles flown %d times",N_Fr,N_Average));
-//	l.DrawLatex(0.15,0.7,"#alpha initial position distribution on MCP:");
-//	l.DrawLatex(0.25,0.6,Form("N_{x}(%g, %g) #times N_{y}(%g, %g)",centerX,stdevX,centerY,stdevY));
-	l.DrawLatex(0.15,0.5,Form("%g #pm %g %% of them reached the Si detector.",100.*detection,100.*dete_StDev));
-//	l.DrawLatex(0.15,0.4,Form("For reference: (Solid angle)/(2#pi) = %g %%",geoeff));
+	l.DrawLatex(0.05,0.9,Form("SSD Holder position: (z_{0}, x_{0}) = (%g, %g) [mm]",geometry[5],geometry[4]));
+	l.DrawLatex(0.05,0.8,Form("%d #alpha particles flown %d times",N_Fr,N_Average));
+	l.DrawLatex(0.05,0.7,"#alpha initial position distribution:");
+	l.DrawLatex(0.10,0.6,Form("N_{x}(%3.2f, %3.2f) #times N_{y}(%3.2f, %3.2f) #times N_{z}(%3.2f, %3.2f) [mm]",x_mm,x_stdv,y_mm,y_stdv,z_mm,z_stdv));
+	l.DrawLatex(0.05,0.5,"#alpha average direction:");
+	l.DrawLatex(0.10,0.4,Form("(%3.2f, %3.2f, %3.2f) (normalized)",ax_mm,ay_mm,az_mm));
+	l.DrawLatex(0.05,0.3,Form("%3.2f #pm %3.2f %% of them reached the Si detector.",100.*detection,100.*dete_StDev));
+	l.DrawLatex(0.05,0.2,Form("Based on calculated solid angle = %g %%",sa));
 
 
 	c1->Update();
