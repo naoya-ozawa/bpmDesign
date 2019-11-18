@@ -16,19 +16,6 @@ using namespace std;
 random_device r;
 default_random_engine engine(r());
 
-// Simple solid angle for reference
-double solidangle(double z_0, double x_0, double R_SSD){
-
-	double adj = TMath::Sqrt(z_0*z_0 + x_0*x_0);
-	double opp = R_SSD/TMath::Sqrt(2.0);
-	double hyp = TMath::Sqrt(adj*adj + opp*opp);
-
-	double cosine = adj/hyp;
-	double Sr = 2.0 * TMath::Pi() *  (1.0 - cosine);
-
-	return Sr;
-}
-
 // Normalized 3d-vector
 double nmvec(double xx,double yy,double zz,const char* axis){
 	double sumsq = xx*xx + yy*yy + zz*zz;
@@ -154,6 +141,7 @@ double alpha_trajectory_1(const char* parameter,double* par){
 double alpha_trajectory_2(const char* parameter,double* par){
 
 	double R_MCP = par[0]; // Radius of MCP-IN
+	double R_MCPlid = par[1];
 	double R_SSD = par[2];
 	double x_0 = par[4];
 	double z_0 = par[5]; // z_0
@@ -163,17 +151,16 @@ double alpha_trajectory_2(const char* parameter,double* par){
 
 	normal_distribution<> randnorm(0.,1.);
 
-	uniform_real_distribution<> randy(-25.,25.);
-	uniform_real_distribution<> randz(-25.,25.);
+	normal_distribution<double> randy(0.0,R_MCPlid);
+	normal_distribution<double> randz(0.0,R_MCPlid);
 
 	// Define Fr on MCP-IN surface
 	double y_M, z_M;
-	double M = R_MCP + 1.0;
-	while (true){
+	double M = R_MCP - 1.0;
+	while (M <= R_MCP){
 		y_M = randy(engine);
 		z_M = randz(engine);
 		M = TMath::Sqrt(y_M*y_M + z_M*z_M);
-		if (M > R_MCP) break;
 	}
 
 	// Define alpha emitted direction
@@ -546,15 +533,13 @@ int draw_objects(double *par){
 	mcp_lid_side->SetLineWidth(3);
 	mcp_lid_side->SetLineColor(4);
 	mcp_lid_side->Draw();
-	TPolyLine3D *mcp_lid_rect = new TPolyLine3D(5);
-	mcp_lid_rect->SetPoint(0,T_lid,W_SSDholder/2.0,H_SSDholder/2.0);
-	mcp_lid_rect->SetPoint(1,T_lid,-W_SSDholder/2.0,H_SSDholder/2.0);
-	mcp_lid_rect->SetPoint(2,T_lid,-W_SSDholder/2.0,-H_SSDholder/2.0);
-	mcp_lid_rect->SetPoint(3,T_lid,W_SSDholder/2.0,-H_SSDholder/2.0);
-	mcp_lid_rect->SetPoint(4,T_lid,W_SSDholder/2.0,H_SSDholder/2.0);
-	mcp_lid_rect->SetLineWidth(3);
-	mcp_lid_rect->SetLineColor(4);
-	mcp_lid_rect->Draw();
+	TPolyLine3D *mcp_lid_outer = new TPolyLine3D(mcp_points);
+	for (int k = 0; k < mcp_points; ++k){
+		mcp_lid_outer->SetPoint(k, T_lid, R_MCPlid*TMath::Cos(2.*double(k)*TMath::Pi()/double(mcp_points-1)), R_MCPlid*TMath::Sin(2.*double(k)*TMath::Pi()/double(mcp_points-1)));
+	}
+	mcp_lid_outer->SetLineWidth(3);
+	mcp_lid_outer->SetLineColor(4);
+	mcp_lid_outer->Draw();
 
 	// Draw SSD holder
 	TPolyLine3D *holder_front = new TPolyLine3D(5);
@@ -657,8 +642,8 @@ int main(int argc, char** argv){
 	TCanvas *c1 = new TCanvas();
 	c1->Divide(1,2);
 
-	int N_Fr = 100000; // 10^5 per sec.
-//	int N_Fr = 10; // for testing
+//	int N_Fr = 100000; // 10^5 per sec.
+	int N_Fr = 10; // for testing
   int N_Average = 180; // 3 min average
 	cout << "Flying " << N_Fr << " alpha particles " << N_Average << " times." << endl;
 
