@@ -741,16 +741,24 @@ int main(int argc, char** argv){
 //	double centerY = 0.320813;
 //	double stdevX = 1.55944;
 //	double stdevY = 1.17039;
-	// Based on SIMION simulation (online-0.5mmCentered-3kV-2810V.pdf)
-	double centerX = -0.476919;
-	double centerY = 0.408884;
-	double stdevX = 1.41096;
-	double stdevY = 0.848104;
+//	// Based on SIMION simulation (online-0.5mmCentered-3kV-2810V.pdf)
+//	double centerX = -0.476919;
+//	double centerY = 0.408884;
+//	double stdevX = 1.41096;
+//	double stdevY = 0.848104;
 //	cout << "Fr distribution = Nx(" << centerX << ", " << stdevX << ") X Ny(" << centerY << ", " << stdevY << ")" << endl;
-	normal_distribution<double> randy(centerX,stdevX);
-	normal_distribution<double> randz(centerY,stdevY);
+//	normal_distribution<double> randy(-centerX,stdevX);
+//	normal_distribution<double> randz(centerY,stdevY);
 //	// for case 2
 //	normal_distribution<double> randrad(0.0,geometry[0]);
+//	// for case 3
+//	normal_distribution<double> randrad(0.0,geometry[1]);
+//	// for case 4
+//	uniform_real_distribution<double> unirandx(geometry[7],geometry[4]+geometry[11]/2.);
+//	uniform_real_distribution<double> unirandy(-geometry[11]/2.,geometry[11]/2.);
+	// for case 5
+	uniform_real_distribution<double> unirandx(geometry[4]-geometry[3],geometry[4]+geometry[3]);
+	uniform_real_distribution<double> unirandy(-geometry[3],geometry[3]);
 
 	for (int j = 0; j < N_Average; ++j){
 //		cout << "Start loop j = " << j+1 << endl;
@@ -766,6 +774,30 @@ int main(int argc, char** argv){
 		double az_mean = 0.0;
 		for (int i = 0; i < N_Fr; ++i){
 //			cout << "Start loop i = " << i+1 << endl;
+
+
+//			// Particle generation for Case 1:
+//			double x_M = 0.0;
+//			double y_M, z_M;
+//			double M = 9999.;
+//			while (M > geometry[0]){
+//				y_M = randy(engine);
+//				z_M = randz(engine);
+//				M = TMath::Sqrt(y_M*y_M + z_M*z_M);
+//			}
+//			double a_x = -1.0;
+//			while (a_x <= 0.0){
+//				a_x = randnorm(engine);
+//				cout << "Trial a_x = " << a_x << ", ";
+//			}
+//			cout << endl;
+//			double a_y = randnorm(engine);
+//			double a_z = randnorm(engine);
+//			// Calculate approximate solid angle
+//			double theta = TMath::ATan(geometry[2]/TMath::Sqrt(geometry[4]*geometry[4] + geometry[5]*geometry[5]));
+//			double alpha = TMath::ATan(geometry[5]/geometry[4]);
+//			sa = 2.*TMath::Pi()*(1. - TMath::Cos(theta))*TMath::Cos(alpha);
+//			// End Case 1
 
 //			// Particle generation for Case 2:
 //			double x_M = geometry[6];
@@ -790,31 +822,77 @@ int main(int argc, char** argv){
 //			sa = 2.*TMath::Pi()*(1. - TMath::Cos(theta))*TMath::Cos(alpha);
 //			// End Case 2
 
+//			// Particle generation for Case 3:
+//			double x_M = geometry[7];
+//			double y_M, z_M;
+//			double M = 0.0;
+//			while (M < geometry[0]){
+//				y_M = randrad(engine);
+//				z_M = randrad(engine);
+//				if ((z_M < geometry[10]/2.0) && (z_M > -geometry[12])){
+//					if ((y_M*y_M < geometry[9]*geometry[9]/4.0)){
+//						M = TMath::Sqrt(y_M*y_M + z_M*z_M);
+//					}else{
+//						M = 0.0;
+//					}
+//				}else{
+//					M = 0.0;
+//				}
+//			}
+//			double a_x = -1.0;
+//			while (a_x <= 0.0){
+//				a_x = randnorm(engine);
+//			}
+//			double a_y = randnorm(engine);
+//			double a_z = randnorm(engine);
+//			// Calculate apprximate solid angle
+//			double theta = TMath::ATan(geometry[2]/TMath::Sqrt((geometry[4]-geometry[7])*(geometry[4]-geometry[7]) + geometry[5]*geometry[5]));
+//			double alpha = TMath::ATan(geometry[5]/(geometry[4]-geometry[7]));
+//			sa = 2.*TMath::Pi()*(1. - TMath::Cos(theta))*TMath::Cos(alpha);
+//			// End Case 3
 
-			// Particle generation for Case 1:
+//			// Particle generation for Case 4:
+//			double x_M, y_M;
+//			bool onlid = false;
+//			while (!onlid){
+//				x_M = unirandx(engine);
+//				y_M = unirandy(engine);
+//				bool on_hole = (TMath::Sqrt((x_M-geometry[4])*(x_M-geometry[4]) + y_M*y_M) < geometry[3]);
+//				bool off_lid = false;
+//				if (x_M > geometry[4]){
+//					off_lid = (TMath::Sqrt((x_M-geometry[4])*(x_M-geometry[4]) + y_M*y_M) > geometry[11]/2.);
+//				}
+//				onlid = (!on_hole) && (!off_lid);
+//			}
+//			double z_M = geometry[12];
+//			double a_x = randnorm(engine);
+//			double a_y = randnorm(engine);
+//			double a_z = 1.0;
+//			while (a_z >= 0.0){
+//				a_z = randnorm(engine);
+//			}
+//			// Calculate approximate solid angle
+//			sa = 2.*TMath::Pi() * (1. - TMath::Cos(TMath::ATan(geometry[2]/(geometry[5]+geometry[12]))));
+//			// End Case 4
 
-			double x_M = 0.0;
-			double y_M, z_M;
+			// Particle generation for Case 5:
+			double x_M, y_M;
 			double M = 9999.;
-			while (M > geometry[0]){
-				y_M = randy(engine);
-				z_M = randz(engine);
-				M = TMath::Sqrt(y_M*y_M + z_M*z_M);
+			while (M > geometry[3]){
+				x_M = unirandx(engine);
+				y_M = unirandy(engine);
+				M = TMath::Sqrt((x_M-geometry[4])*(x_M-geometry[4]) + y_M*y_M);
 			}
-			double a_x = -1.0;
-			while (a_x <= 0.0){
-				a_x = randnorm(engine);
-//				cout << "Trial a_x = " << a_x << ", ";
-			}
-//			cout << endl;
+			double z_M = geometry[5];
+			double a_x = randnorm(engine);
 			double a_y = randnorm(engine);
-			double a_z = randnorm(engine);
+			double a_z = 1.0;
+			while (a_z >= 0.0){
+				a_z = randnorm(engine);
+			}
 			// Calculate approximate solid angle
-			double theta = TMath::ATan(geometry[2]/TMath::Sqrt(geometry[4]*geometry[4] + 2.*geometry[5]*2.*geometry[5]));
-			double alpha = TMath::ATan(2.*geometry[5]/geometry[4]);
-			sa = 2.*TMath::Pi()*(1. - TMath::Cos(theta))*TMath::Cos(alpha);
-			// End Case 1
-
+			sa = 2.*TMath::Pi() * (1. - TMath::Cos(TMath::ATan(geometry[2]/(2.*geometry[5]))));
+			// End Case 5
 
 //			double x_M = alpha_trajectory_2("x_M",0.0,geometry); // <-- gets stuck here
 //			double x_M = 0.0;
@@ -938,7 +1016,7 @@ int main(int argc, char** argv){
 	l.DrawLatex(0.05,0.5,"#alpha average direction:");
 	l.DrawLatex(0.10,0.4,Form("(%3.2f, %3.2f, %3.2f) (normalized)",ax_mm,ay_mm,az_mm));
 	l.DrawLatex(0.05,0.3,Form("%3.2f #pm %3.2f %% of them reached the Si detector.",100.*detection,100.*dete_StDev));
-	l.DrawLatex(0.05,0.2,Form("Based on calculated solid angle = %g %%",sa));
+	l.DrawLatex(0.05,0.2,Form("Based on calculated solid angle = %g %%",100.*sa/(2.*TMath::Pi())));
 
 
 	c1->Update();
