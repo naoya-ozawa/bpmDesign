@@ -714,9 +714,43 @@ int main(int argc, char** argv){
 	double ay_mm = 0.0;
 	double az_mm = 0.0;
 
-	// for case 2
 	normal_distribution<double> randnorm(0.,1.);
-	normal_distribution<double> randrad(0.0,geometry[0]);
+	// for case 1
+//	// Based on SIMION simulation (online-3mmCentered-3kV-2810V.pdf)
+//	double centerX = -0.481228;
+//	double centerY = -0.433211;
+//	double stdevX = 2.88206;
+//	double stdevY = 3.24264;
+//	// Based on SIMION simulation (online-2.5mmCentered-3kV-2810V.pdf)
+//	double centerX = -0.511427;
+//	double centerY = -0.320229;
+//	double stdevX = 2.50386;
+//	double stdevY = 2.74055;
+//	// Based on SIMION simulation (online-2mmCentered-3kV-2810V.pdf)
+//	double centerX = -0.453525;
+//	double centerY = 0.0106807;
+//	double stdevX = 2.13472;
+//	double stdevY = 2.15487;
+//	// Based on SIMION simulation (online-1.5mmCentered-3kV-2810V.pdf)
+//	double centerX = -0.450175;
+//	double centerY = 0.165801;
+//	double stdevX = 1.79913;
+//	double stdevY = 1.59912;
+//	// Based on SIMION simulation (online-1mmCentered-3kV-2810V.pdf)
+//	double centerX = -0.476828;
+//	double centerY = 0.320813;
+//	double stdevX = 1.55944;
+//	double stdevY = 1.17039;
+	// Based on SIMION simulation (online-0.5mmCentered-3kV-2810V.pdf)
+	double centerX = -0.476919;
+	double centerY = 0.408884;
+	double stdevX = 1.41096;
+	double stdevY = 0.848104;
+//	cout << "Fr distribution = Nx(" << centerX << ", " << stdevX << ") X Ny(" << centerY << ", " << stdevY << ")" << endl;
+	normal_distribution<double> randy(centerX,stdevX);
+	normal_distribution<double> randz(centerY,stdevY);
+//	// for case 2
+//	normal_distribution<double> randrad(0.0,geometry[0]);
 
 	for (int j = 0; j < N_Average; ++j){
 //		cout << "Start loop j = " << j+1 << endl;
@@ -733,13 +767,38 @@ int main(int argc, char** argv){
 		for (int i = 0; i < N_Fr; ++i){
 //			cout << "Start loop i = " << i+1 << endl;
 
-			// Particle generation for Case 2:
-			double x_M = geometry[6];
+//			// Particle generation for Case 2:
+//			double x_M = geometry[6];
+//			double y_M, z_M;
+//			double M = 9999.;
+//			while ( (M > geometry[1]) || (M < geometry[0]) ){
+//				y_M = randrad(engine);
+//				z_M = randrad(engine);
+//				M = TMath::Sqrt(y_M*y_M + z_M*z_M);
+//			}
+//			double a_x = -1.0;
+//			while (a_x <= 0.0){
+//				a_x = randnorm(engine);
+//				cout << "Trial a_x = " << a_x << ", ";
+//			}
+//			cout << endl;
+//			double a_y = randnorm(engine);
+//			double a_z = randnorm(engine);
+//			// Calculate approximate solid angle
+//			double theta = TMath::ATan(geometry[2]/TMath::Sqrt((geometry[4]-geometry[6])*(geometry[4]-geometry[6]) + 2.*geometry[5]*2.*geometry[5]));
+//			double alpha = TMath::ATan(2.*geometry[5]/(geometry[4]-geometry[6]));
+//			sa = 2.*TMath::Pi()*(1. - TMath::Cos(theta))*TMath::Cos(alpha);
+//			// End Case 2
+
+
+			// Particle generation for Case 1:
+
+			double x_M = 0.0;
 			double y_M, z_M;
 			double M = 9999.;
-			while ( (M > geometry[1]) || (M < geometry[0]) ){
-				y_M = randrad(engine);
-				z_M = randrad(engine);
+			while (M > geometry[0]){
+				y_M = randy(engine);
+				z_M = randz(engine);
 				M = TMath::Sqrt(y_M*y_M + z_M*z_M);
 			}
 			double a_x = -1.0;
@@ -751,10 +810,11 @@ int main(int argc, char** argv){
 			double a_y = randnorm(engine);
 			double a_z = randnorm(engine);
 			// Calculate approximate solid angle
-			double theta = TMath::ATan(geometry[2]/TMath::Sqrt((geometry[4]-geometry[6])*(geometry[4]-geometry[6]) + 2.*geometry[5]*2.*geometry[5]));
-			double alpha = TMath::ATan(2.*geometry[5]/(geometry[4]-geometry[6]));
+			double theta = TMath::ATan(geometry[2]/TMath::Sqrt(geometry[4]*geometry[4] + 2.*geometry[5]*2.*geometry[5]));
+			double alpha = TMath::ATan(2.*geometry[5]/geometry[4]);
 			sa = 2.*TMath::Pi()*(1. - TMath::Cos(theta))*TMath::Cos(alpha);
-			// End Case 2
+			// End Case 1
+
 
 //			double x_M = alpha_trajectory_2("x_M",0.0,geometry); // <-- gets stuck here
 //			double x_M = 0.0;
