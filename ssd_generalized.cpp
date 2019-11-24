@@ -57,11 +57,11 @@ double alpha_trajectory_1(const char* parameter,double* par){
 	double x_0 = par[4];
 	double z_0 = par[5]; // z_0
 
-//	// Based on SIMION simulation (online-3mmCentered-3kV-2810V.pdf)
-//	double centerX = -0.481228;
-//	double centerY = -0.433211;
-//	double stdevX = 2.88206;
-//	double stdevY = 3.24264;
+	// Based on SIMION simulation (online-3mmCentered-3kV-2810V.pdf)
+	double centerX = -0.481228;
+	double centerY = -0.433211;
+	double stdevX = 2.88206;
+	double stdevY = 3.24264;
 //	// Based on SIMION simulation (online-2.5mmCentered-3kV-2810V.pdf)
 //	double centerX = -0.511427;
 //	double centerY = -0.320229;
@@ -82,11 +82,11 @@ double alpha_trajectory_1(const char* parameter,double* par){
 //	double centerY = 0.320813;
 //	double stdevX = 1.55944;
 //	double stdevY = 1.17039;
-	// Based on SIMION simulation (online-0.5mmCentered-3kV-2810V.pdf)
-	double centerX = -0.476919;
-	double centerY = 0.408884;
-	double stdevX = 1.41096;
-	double stdevY = 0.848104;
+//	// Based on SIMION simulation (online-0.5mmCentered-3kV-2810V.pdf)
+//	double centerX = -0.476919;
+//	double centerY = 0.408884;
+//	double stdevX = 1.41096;
+//	double stdevY = 0.848104;
 //	cout << "Fr distribution = Nx(" << centerX << ", " << stdevX << ") X Ny(" << centerY << ", " << stdevY << ")" << endl;
 
 
@@ -97,7 +97,7 @@ double alpha_trajectory_1(const char* parameter,double* par){
 
 	// Define Fr on MCP-IN surface
 	double y_M, z_M;
-	double M = R_MCP + 1.0;
+	double M = 9999.;
 	while (M > R_MCP){
 		y_M = randy(engine);
 		z_M = randz(engine);
@@ -135,7 +135,7 @@ double alpha_trajectory_1(const char* parameter,double* par){
 }
 
 // Case 2: from the MCP lid surface
-double alpha_trajectory_2(const char* parameter,double* par){
+double alpha_trajectory_2(const char *parameter,double preset_y,double *par){
 
 	double R_MCP = par[0]; // Radius of MCP-IN
 	double R_MCPlid = par[1];
@@ -144,48 +144,38 @@ double alpha_trajectory_2(const char* parameter,double* par){
 	double z_0 = par[5]; // z_0
 	double T_lid = par[6];
 
-//	cout << "Fr distribution = Nx(" << centerX << ", " << stdevX << ") X Ny(" << centerY << ", " << stdevY << ")" << endl;
-
-	normal_distribution<> randnorm(0.,1.);
-
-	normal_distribution<> randy(0.0,R_MCPlid);
-	normal_distribution<> randz(0.0,R_MCPlid);
-
-	// Define Fr on MCP-IN surface
-	double y_M, z_M;
-	double M;
-	while ((M > R_MCPlid) || (M < R_MCP)){
-		y_M = randy(engine);
-		z_M = randz(engine);
-		M = TMath::Sqrt(y_M*y_M + z_M*z_M);
-	}
-
-	// Define alpha emitted direction
-	double a_x = -1.0;
-	while (a_x <= 0.0){
-		a_x = randnorm(engine);
-	}
-	double a_y = randnorm(engine);
-	double a_z = randnorm(engine);
-
-	// Calculate approximate solid angle
-	double theta = TMath::ATan(R_SSD/TMath::Sqrt((x_0-T_lid)*(x_0-T_lid) + 2.*z_0*2.*z_0));
-	double alpha = TMath::ATan(2.*z_0/(x_0-T_lid));
-	double sa = 2.*TMath::Pi()*(1. - TMath::Cos(theta))*TMath::Cos(alpha);
+	normal_distribution<double> randnorm(0.,1.);
+	normal_distribution<double> randrad(0.0,R_MCP);
 
 	if (parameter == "x_M"){
 		return T_lid;
 	}else if (parameter == "y_M"){
-		return y_M;
+		return randrad(engine);
 	}else if (parameter == "z_M"){
+		double z_M;
+		double M = 9999.;
+		while ( (M > R_MCPlid) || (M < R_MCP) ){
+			z_M = randrad(engine);
+			M = TMath::Sqrt(preset_y*preset_y + z_M*z_M);
+		}
 		return z_M;
 	}else if (parameter == "a_x"){
+		double a_x = -1.0;
+		while (a_x <= 0.0){
+			a_x = randnorm(engine);
+//			cout << "Trial a_x = " << a_x << ", ";
+		}
+//		cout << endl;
 		return a_x;
 	}else if (parameter == "a_y"){
-		return a_y;
+		return randnorm(engine);
 	}else if (parameter == "a_z"){
-		return a_z;
+		return randnorm(engine);
 	}else{
+		// Calculate approximate solid angle
+		double theta = TMath::ATan(R_SSD/TMath::Sqrt((x_0-T_lid)*(x_0-T_lid) + 2.*z_0*2.*z_0));
+		double alpha = TMath::ATan(2.*z_0/(x_0-T_lid));
+		double sa = 2.*TMath::Pi()*(1. - TMath::Cos(theta))*TMath::Cos(alpha);
 		return sa;
 	}
 }
@@ -639,10 +629,10 @@ int main(int argc, char** argv){
 	TCanvas *c1 = new TCanvas();
 	c1->Divide(1,2);
 
-	int N_Fr = 100000; // 10^5 per sec.
-//	int N_Fr = 100; // for testing
-  int N_Average = 180; // 3 min average
-//	int N_Average = 2; // for testing
+//	int N_Fr = 100000; // 10^5 per sec.
+	int N_Fr = 2; // for testing
+//  int N_Average = 180; // 3 min average
+	int N_Average = 2; // for testing
 	cout << "Flying " << N_Fr << " alpha particles " << N_Average << " times." << endl;
 
 	// BPM geometry parameters
@@ -691,14 +681,12 @@ int main(int argc, char** argv){
 	double ay_mm = 0.0;
 	double az_mm = 0.0;
 
-	// Based on SIMION simulation (20190814_01)
-//	double centerX = -0.42909;
-//	double centerY = 1.29343;
-//	double stdevX = 2.44142;
-//	double stdevY = 1.63478;
-//	cout << "Fr distribution = Nx(" << centerX << ", " << stdevX << ") X Ny(" << centerY << ", " << stdevY << ")" << endl;
+	// for case 2
+	normal_distribution<double> randnorm(0.,1.);
+	normal_distribution<double> randrad(0.0,geometry[0]);
 
 	for (int j = 0; j < N_Average; ++j){
+//		cout << "Start loop j = " << j+1 << endl;
 		N_Detected = 0;
 		double x_mean = 0.0;
 		double x_sqmn = 0.0;
@@ -710,23 +698,46 @@ int main(int argc, char** argv){
 		double ay_mean = 0.0;
 		double az_mean = 0.0;
 		for (int i = 0; i < N_Fr; ++i){
-
-			double x_M = alpha_trajectory_2("x_M",geometry);
+//			cout << "Start loop i = " << i+1 << endl;
+//			double x_M = alpha_trajectory_2("x_M",0.0,geometry); // <-- gets stuck here
+			double x_M = geometry[6];
+//			cout << "x_M = " << x_M << ", ";
 			x_mean += x_M;
 			x_sqmn += x_M*x_M;
-			double y_M = alpha_trajectory_2("y_M",geometry);
+//			double y_M = alpha_trajectory_2("y_M",0.0,geometry);
+			double y_M, z_M;
+			double M = 9999.;
+			while ( (M > geometry[1]) || (M < geometry[0]) ){
+				y_M = randrad(engine);
+				z_M = randrad(engine);
+				M = TMath::Sqrt(y_M*y_M + z_M*z_M);
+			}
+//			cout << "y_M = " << y_M << ", ";
 			y_mean += y_M;
 			y_sqmn += y_M*y_M;
-			double z_M = alpha_trajectory_2("z_M",geometry);
+//			double z_M = alpha_trajectory_2("z_M",y_M,geometry);
+//			cout << "z_M = " << z_M << endl;
 			z_mean += z_M;
 			z_sqmn += z_M*z_M;
-			double a_x = alpha_trajectory_2("a_x",geometry);
-			double a_y = alpha_trajectory_2("a_y",geometry);
-			double a_z = alpha_trajectory_2("a_z",geometry);
+//			double a_x = alpha_trajectory_2("a_x",0.0,geometry);
+			double a_x = -1.0;
+			while (a_x <= 0.0){
+				a_x = randnorm(engine);
+//			cout << "Trial a_x = " << a_x << ", ";
+			}
+//		cout << endl;
+//			double a_y = alpha_trajectory_2("a_y",0.0,geometry);
+			double a_y = randnorm(engine);
+//			double a_z = alpha_trajectory_2("a_z",0.0,geometry);
+			double a_z = randnorm(engine);
 			ax_mean += nmvec(a_x,a_y,a_z,"x");
 			ay_mean += nmvec(a_x,a_y,a_z,"y");
 			az_mean += nmvec(a_x,a_y,a_z,"z");
-			sa = alpha_trajectory_2("",geometry);
+//			sa = alpha_trajectory_2("",0.0,geometry);
+			// Calculate approximate solid angle
+			double theta = TMath::ATan(geometry[2]/TMath::Sqrt((geometry[4]-geometry[6])*(geometry[4]-geometry[6]) + 2.*geometry[5]*2.*geometry[5]));
+			double alpha = TMath::ATan(2.*geometry[5]/(geometry[4]-geometry[6]));
+			sa = 2.*TMath::Pi()*(1. - TMath::Cos(theta))*TMath::Cos(alpha);
 
 			bool alpha_detected = reach_ssd(x_M,y_M,z_M,a_x,a_y,a_z,geometry);
 //			bool alpha_detected = false;
@@ -734,27 +745,28 @@ int main(int argc, char** argv){
 //			cout << "Hits surface 2?: " << HitSurface2(x_M,y_M,z_M,a_x,a_y,a_z,t_SSD(z_M,a_z,geometry[5]),geometry[0],geometry[7],geometry[8],geometry[9],geometry[10]) << endl;
 //			cout << "Hits surface 3?: " << HitSurface3(x_M,y_M,z_M,a_x,a_y,a_z,t_SSD(z_M,a_z,geometry[5]),geometry[2],geometry[4],geometry[5],geometry[7],geometry[11],geometry[12]) << endl;
 //			cout << "Entered SSD ?: " << HitsSSD(x_M,y_M,z_M,a_x,a_y,a_z,t_SSD(z_M,a_z,geometry[5]),geometry[4],geometry[2]) << endl;
-
+//			bool check_inregion = (TMath::Sqrt(y_M*y_M + z_M*z_M) > geometry[0]);
+//			cout << "Particle generated within region : " << check_inregion << endl;
 			// Detection
-			if (alpha_detected){
+			if (!alpha_detected){
 				++N_Detected;
 				++tot_detected;
 				// Draw hit trajectories for all hits
         if (j > -1){
-					double t = t_SSD(z_M,a_z,geometry[5]);
-					double x_t, y_t, z_t;
-					if (t > 0){
-						x_t = x_M + a_x*t;
-						y_t = y_M + a_y*t;
-						z_t = z_M + a_z*t;
-					}else{
-						x_t = x_M - a_x*t;
-						y_t = y_M - a_y*t;
-						z_t = z_M - a_z*t;
-					}
-//					double x_t = x_M + 50.*nmvec(a_x,a_y,a_z,"x");
-//					double y_t = y_M + 50.*nmvec(a_x,a_y,a_z,"y");
-//					double z_t = z_M + 50.*nmvec(a_x,a_y,a_z,"z");
+//					double t = t_SSD(z_M,a_z,geometry[5]);
+//					double x_t, y_t, z_t;
+//					if (t > 0){
+//						x_t = x_M + a_x*t;
+//						y_t = y_M + a_y*t;
+//						z_t = z_M + a_z*t;
+//					}else{
+//						x_t = x_M - a_x*t;
+//						y_t = y_M - a_y*t;
+//						z_t = z_M - a_z*t;
+//					}
+					double x_t = x_M + 50.*nmvec(a_x,a_y,a_z,"x");
+					double y_t = y_M + 50.*nmvec(a_x,a_y,a_z,"y");
+					double z_t = z_M + 50.*nmvec(a_x,a_y,a_z,"z");
 					TPolyLine3D *trajectory = new TPolyLine3D(-1);
 					trajectory->SetLineWidth(1);
 					trajectory->SetLineColor(2);
@@ -763,6 +775,7 @@ int main(int argc, char** argv){
 					g_traj->SetPoint(2*(tot_detected-1)+1,x_t,y_t,z_t);
 					trajectory->SetPoint(1,x_t,y_t,z_t);
 					trajectory->Draw();
+//					cout << "Added trajectory " << N_Detected << endl;
 				}
 			}
 		}
