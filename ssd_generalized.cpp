@@ -662,10 +662,10 @@ int main(int argc, char** argv){
 	TCanvas *c1 = new TCanvas();
 	c1->Divide(1,2);
 
-//	int N_Fr = 100000; // 10^5 per sec.
-	int N_Fr = 1000; // for testing
-//	int N_Average = 180; // 3 min average
-	int N_Average = 2; // for testing
+	int N_Fr = 100000; // 10^5 per sec.
+//	int N_Fr = 1000; // for testing
+	int N_Average = 180; // 3 min average
+//	int N_Average = 2; // for testing
 	cout << "Flying " << N_Fr << " alpha particles " << N_Average << " times." << endl;
 
 	// BPM geometry parameters
