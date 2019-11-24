@@ -247,7 +247,7 @@ bool HitsSSD (double x_M, double y_M, double z_M, double a_x, double a_y, double
 bool HitSurface1 (double x_M, double y_M, double z_M, double a_x, double a_y, double a_z, double t_SSD, double R_MCP, double T_lid){
 	// vec{P} = (x_M,y_M,z_M) + t~*t_SSD*(a_x,a_y,a_z)
 	// hits y^2+z^2 = R_MCP^2 at t~ = t_hitsurface1 ?
-	// (y_M+t~*t_SSD*a_y)^2 + (z_M+t~*t_SSD*a_z) = R_MCP^2
+	// (y_M+t~*t_SSD*a_y)^2 + (z_M+t~*t_SSD*a_z)^2 = R_MCP^2
 	// {(t_SSD*a_y)^2+(t_SSD*a_z)^2}*t~^2
 	// + {2*y_M*t_SSD*a_y+2*z_M*t_SSD*a_z}*t~
 	// + y_M^2 + z_M^2 - R_MCP^2
@@ -266,7 +266,7 @@ bool HitSurface1 (double x_M, double y_M, double z_M, double a_x, double a_y, do
 		return false;
 	}else{
 		// is the intercept within 0 < x < T_lid ?
-		return (0.0 <= x) && (x <= T_lid);
+		return (x >= 0.0) && (x <= T_lid);
 	}
 }
 
@@ -285,16 +285,20 @@ bool HitSurface2 (double x_M, double y_M, double z_M, double a_x, double a_y, do
 		holderback = false;
 	}else{
 		double t_hitsurface2_1 = (SSDholder_back - x_M)/(t_SSD*a_x);
-		double x = x_M + t_hitsurface2_1*t_SSD*a_x;
-		double y = y_M + t_hitsurface2_1*t_SSD*a_y;
-		double z = z_M + t_hitsurface2_1*t_SSD*a_z;
-		// -W_SSDholder/2 < y < W_SSDholder/2 ?
-		bool holderback_y = (-W_SSDholder/2.0 <= y) && (y <= W_SSDholder/2.0);
-		// -H_SSDholder/2 < z < H_SSDholder/2 ?
-		bool holderback_z = (-H_SSDholder/2.0 <= z) && (z <= H_SSDholder/2.0);
-		// y^2+z^2 > R_MCP^2 ?
-		bool openingring = (y*y + z*z >= R_MCP*R_MCP);
-		holderback = holderback_y && holderback_z && openingring;
+		if ((t_hitsurface2_1 <= 0.0) || (t_hitsurface2_1 >= 1.0)){
+			holderback = false;
+		}else{
+			double x = x_M + t_hitsurface2_1*t_SSD*a_x;
+			double y = y_M + t_hitsurface2_1*t_SSD*a_y;
+			double z = z_M + t_hitsurface2_1*t_SSD*a_z;
+			// -W_SSDholder/2 < y < W_SSDholder/2 ?
+			bool holderback_y = (-W_SSDholder/2.0 <= y) && (y <= W_SSDholder/2.0);
+			// -H_SSDholder/2 < z < H_SSDholder/2 ?
+			bool holderback_z = (-H_SSDholder/2.0 <= z) && (z <= H_SSDholder/2.0);
+			// y^2+z^2 > R_MCP^2 ?
+			bool openingring = (y*y + z*z >= R_MCP*R_MCP);
+			holderback = holderback_y && holderback_z && openingring;
+		}
 	}
 
 	// part 2: Inner side
@@ -312,13 +316,20 @@ bool HitSurface2 (double x_M, double y_M, double z_M, double a_x, double a_y, do
 
 	double t_hitsurface2_2 = solve_quad(coef_a,coef_b,coef_c);
 
-	double x = x_M + t_hitsurface2_2*t_SSD*a_x;
-	double y = y_M + t_hitsurface2_2*t_SSD*a_y;
-	double z = z_M + t_hitsurface2_2*t_SSD*a_z;
+	bool inner_side;
+	if ((t_hitsurface2_2 <= 0.0) || (t_hitsurface2_2 >= 1.0)){
+		// The trajectory does not pass through here
+		inner_side = false;
+	}else{
+		// Is the intercept within SSDholder_back < x < SSDholder_front ?
+		double x = x_M + t_hitsurface2_2*t_SSD*a_x;
+		double y = y_M + t_hitsurface2_2*t_SSD*a_y;
+		double z = z_M + t_hitsurface2_2*t_SSD*a_z;
 
-	bool inner_side = (SSDholder_back <= x) && (x <= SSDholder_front);
+		inner_side = (x >= SSDholder_back) && (x <= SSDholder_front);
+	}
 
-	return holderback || inner_side;
+	return (holderback || inner_side);
 }
 
 // Hit Component 3: SSD box lid + side
@@ -336,20 +347,24 @@ bool HitSurface3 (double x_M, double y_M, double z_M, double a_x, double a_y, do
 		boxlid = false;
 	}else{
 		double t_hitsurface3_1 = (-H_SSDboxlid - z_M)/(t_SSD*a_z);
-		double x = x_M + t_hitsurface3_1*t_SSD*a_x;
-		double y = y_M + t_hitsurface3_1*t_SSD*a_y;
-		double z = z_M + t_hitsurface3_1*t_SSD*a_z;
-		// (x-x_0)^2+y^2 > R_SSD^2 ?
-		bool openingring = ((x-x_0)*(x-x_0) + y*y >= R_SSD*R_SSD);
-		// SSDholder_front < x < x_0 ?
-		bool boxlid_x = (SSDholder_front <= x) && (x <= x_0);
-		// -W_SSDboxlid/2 < y < W_SSDboxlid/2 ?
-		bool boxlid_y = (-W_SSDboxlid/2.0 <= y) && (y <= W_SSDboxlid/2.0);
-		bool boxlid_rect = boxlid_x && boxlid_y;
-		// (x-x_0)^2+y^2 < (W_SSDboxlid/2)^2 ?
-		bool boxlid_circ = (x-x_0)*(x-x_0)+y*y < (W_SSDboxlid/2.0)*(W_SSDboxlid/2.0);
+		if ((t_hitsurface3_1 <= 0.0) || (t_hitsurface3_1 >= 1.0)){
+			boxlid = false;
+		}else{
+			double x = x_M + t_hitsurface3_1*t_SSD*a_x;
+			double y = y_M + t_hitsurface3_1*t_SSD*a_y;
+			double z = z_M + t_hitsurface3_1*t_SSD*a_z;
+			// (x-x_0)^2+y^2 > R_SSD^2 ?
+			bool openingring = ((x-x_0)*(x-x_0) + y*y >= R_SSD*R_SSD);
+			// SSDholder_front < x < x_0 ?
+			bool boxlid_x = (SSDholder_front <= x) && (x <= x_0);
+			// -W_SSDboxlid/2 < y < W_SSDboxlid/2 ?
+			bool boxlid_y = (-W_SSDboxlid/2.0 <= y) && (y <= W_SSDboxlid/2.0);
+			bool boxlid_rect = boxlid_x && boxlid_y;
+			// (x-x_0)^2+y^2 < (W_SSDboxlid/2)^2 ?
+			bool boxlid_circ = (x-x_0)*(x-x_0)+y*y < (W_SSDboxlid/2.0)*(W_SSDboxlid/2.0);
 
-		boxlid = (boxlid_rect || boxlid_circ) && openingring;
+			boxlid = (boxlid_rect || boxlid_circ) && openingring;
+		}
 	}
 
 	// part 2: Inner side
@@ -366,13 +381,17 @@ bool HitSurface3 (double x_M, double y_M, double z_M, double a_x, double a_y, do
 	double coef_c = (x_M-x_0)*(x_M-x_0) + y_M*y_M - R_SSD*R_SSD;
 
 	double t_hitsurface3_2 = solve_quad(coef_a,coef_b,coef_c);
+	bool inner_side;
+	if ((t_hitsurface3_2 <= 0.0) || (t_hitsurface3_2 >= 1.0)){
+		inner_side = false;
+	}else{
+		double x = x_M + t_hitsurface3_2*t_SSD*a_x;
+		double y = y_M + t_hitsurface3_2*t_SSD*a_y;
+		double z = z_M + t_hitsurface3_2*t_SSD*a_z;
 
-	double x = x_M + t_hitsurface3_2*t_SSD*a_x;
-	double y = y_M + t_hitsurface3_2*t_SSD*a_y;
-	double z = z_M + t_hitsurface3_2*t_SSD*a_z;
-
-	// -z_0 < z < -H_SSDboxlid ?
-	bool inner_side = (-z_0 <= z) && (z <= -H_SSDboxlid);
+		// -z_0 < z < -H_SSDboxlid ?
+		inner_side = (-z_0 <= z) && (z <= -H_SSDboxlid);
+	}
 
 	return boxlid || inner_side;
 }
@@ -392,7 +411,7 @@ bool HitSurface4 (double x_M, double y_M, double z_M, double a_x, double a_y, do
 		boxlid = false;
 	}else{
 		double t_hitsurface4_1 = (H_SSDboxlid - z_M)/(t_SSD*a_z);
-		if (t_hitsurface4_1 <= 0.0){
+		if ((t_hitsurface4_1 <= 0.0) || (t_hitsurface4_1 >= 1.0)){
 			boxlid = false;
 		}else{
 			double x = x_M + t_hitsurface4_1*t_SSD*a_x;
@@ -428,7 +447,7 @@ bool HitSurface4 (double x_M, double y_M, double z_M, double a_x, double a_y, do
 	double t_hitsurface4_2 = solve_quad(coef_a,coef_b,coef_c);
 
 	bool inner_side;
-	if (t_hitsurface4_2 <= 0.0){
+	if ((t_hitsurface4_2 <= 0.0) || (t_hitsurface4_2 >= 1.0)){
 		inner_side = false;
 	}else{
 		double x = x_M + t_hitsurface4_2*t_SSD*a_x;
@@ -713,22 +732,38 @@ int main(int argc, char** argv){
 		double az_mean = 0.0;
 		for (int i = 0; i < N_Fr; ++i){
 //			cout << "Start loop i = " << i+1 << endl;
+
+			// Particle generation for Case 2:
+			double x_M = geometry[6];
+			double y_M, z_M;
+			double M = 9999.;
+			while ( (M > geometry[1]) || (M < geometry[0]) ){
+				y_M = randrad(engine);
+				z_M = randrad(engine);
+				M = TMath::Sqrt(y_M*y_M + z_M*z_M);
+			}
+			double a_x = -1.0;
+			while (a_x <= 0.0){
+				a_x = randnorm(engine);
+//				cout << "Trial a_x = " << a_x << ", ";
+			}
+//			cout << endl;
+			double a_y = randnorm(engine);
+			double a_z = randnorm(engine);
+			// Calculate approximate solid angle
+			double theta = TMath::ATan(geometry[2]/TMath::Sqrt((geometry[4]-geometry[6])*(geometry[4]-geometry[6]) + 2.*geometry[5]*2.*geometry[5]));
+			double alpha = TMath::ATan(2.*geometry[5]/(geometry[4]-geometry[6]));
+			sa = 2.*TMath::Pi()*(1. - TMath::Cos(theta))*TMath::Cos(alpha);
+			// End Case 2
+
 //			double x_M = alpha_trajectory_2("x_M",0.0,geometry); // <-- gets stuck here
-//			double x_M = geometry[6];
-			double x_M = geometry[4]+randnorm(engine);
+//			double x_M = 0.0;
 //			cout << "x_M = " << x_M << ", ";
 			x_mean += x_M;
 			x_sqmn += x_M*x_M;
 //			double y_M = alpha_trajectory_2("y_M",0.0,geometry);
-			double y_M, z_M;
-			double M = 9999.;
-//			while ( (M > geometry[1]) || (M < geometry[0]) ){
-//				y_M = randrad(engine);
-//				z_M = randrad(engine);
-//				M = TMath::Sqrt(y_M*y_M + z_M*z_M);
-//			}
-			y_M = randnorm(engine);
-			z_M = randnorm(engine);
+//			y_M = randrad(engine);
+//			z_M = randrad(engine);
 //			cout << "y_M = " << y_M << ", ";
 			y_mean += y_M;
 			y_sqmn += y_M*y_M;
@@ -737,27 +772,15 @@ int main(int argc, char** argv){
 			z_mean += z_M;
 			z_sqmn += z_M*z_M;
 //			double a_x = alpha_trajectory_2("a_x",0.0,geometry);
-//			double a_x = -1.0;
-//			while (a_x <= 0.0){
-//				a_x = randnorm(engine);
-//			cout << "Trial a_x = " << a_x << ", ";
-//			}
-//		cout << endl;
 //			double a_y = alpha_trajectory_2("a_y",0.0,geometry);
-//			double a_y = randnorm(engine);
 //			double a_z = alpha_trajectory_2("a_z",0.0,geometry);
+//			double a_x = 1.0;
+//			double a_y = randnorm(engine);
 //			double a_z = randnorm(engine);
-			double a_x = 0;
-			double a_y = 0;
-			double a_z = -1.0;
 			ax_mean += nmvec(a_x,a_y,a_z,"x");
 			ay_mean += nmvec(a_x,a_y,a_z,"y");
 			az_mean += nmvec(a_x,a_y,a_z,"z");
 //			sa = alpha_trajectory_2("",0.0,geometry);
-			// Calculate approximate solid angle
-			double theta = TMath::ATan(geometry[2]/TMath::Sqrt((geometry[4]-geometry[6])*(geometry[4]-geometry[6]) + 2.*geometry[5]*2.*geometry[5]));
-			double alpha = TMath::ATan(2.*geometry[5]/(geometry[4]-geometry[6]));
-			sa = 2.*TMath::Pi()*(1. - TMath::Cos(theta))*TMath::Cos(alpha);
 
 			bool alpha_detected = reach_ssd(x_M,y_M,z_M,a_x,a_y,a_z,geometry);
 //			bool alpha_detected = false;
