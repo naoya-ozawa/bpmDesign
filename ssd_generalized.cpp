@@ -279,7 +279,7 @@ int main(int argc, char** argv){
 	double geometry[11];
 	geometry[0] = 13.0; // R_FC:Radius of FC
 //	geometry[1] = 105.8; // z_0:Position of FC bottom
-	geometry[1] = 10.; // z_0:Position of FC bottom
+	geometry[1] = 20.; // z_0:Position of FC bottom
 	geometry[2] = 15.0; // z_FC:Height of FC inner side
 	geometry[3] = 20.01; // x_Am:X position of Am
 	geometry[4] = 7.48; // z_Am:Z position of Am
@@ -445,14 +445,17 @@ int main(int argc, char** argv){
 			if (true){
 				double t = t_SSD(z_M,a_z);
 				double x_t, y_t, z_t;
-				if (t > 0){
-					x_t = x_M + a_x*t;
-					y_t = y_M + a_y*t;
-					z_t = z_M + a_z*t;
+				x_t = x_M + a_x*t;
+				y_t = y_M + a_y*t;
+				z_t = z_M + a_z*t; // = 0
+				double M = TMath::Sqrt(x_t*x_t + y_t*y_t);
+				if (M > geometry[7]){
+					double tR = solve_quad(a_x*a_x+a_y*a_y, 2.*x_M*a_x+2.*y_M*a_y, x_M*x_M+y_M*y_M-geometry[7]*geometry[7]);
+					x_t = x_M + a_x*tR;
+					y_t = y_M + a_y*tR;
+					z_t = z_M + a_z*tR;
 				}else{
-					x_t = x_M - a_x*t;
-					y_t = y_M - a_y*t;
-					z_t = z_M - a_z*t;
+					cout << "TRAJECTORY DRAWN" << endl;
 				}
 				TPolyLine3D *trajectory = new TPolyLine3D(-1);
 				trajectory->SetLineWidth(1);
