@@ -67,64 +67,93 @@ bool HitsSSD (double x_M, double y_M, double a_x, double a_y, double t_SSD, doub
 // Hit Component 1: SSD case
 // Returns TRUE if trajectory (x_M,y_M,z_M,a_x,a_y,a_z) penetrates the surface
 bool HitSurface1 (double x_M, double y_M, double z_M, double a_x, double a_y, double a_z, double t_SSD, double R_SSD, double H_SSD){
-	// vec{P} = (x_M,y_M,z_M) + t~*t_SSD*(a_x,a_y,a_z)
-	// hits x^2+y^2 > R_SSD^2, z = H_SSD at t~ = t_hitsurface1 ?
-	// (x_M+t~*t_SSD*a_x)^2 + (y_M+t~*t_SSD*a_y)^2 > R_SSD^2
-	// {(t_SSD*a_x)^2+(t_SSD*a_y)^2}*t~^2
-	// + {2*x_M*t_SSD*a_x+2*y_M*t_SSD*a_y}*t~
-	// + x_M^2 + y_M^2 - R_SSD^2 > 0
+	// Part 1
+	//
+	// Define t~_1 that
+	// vec{P_1} = (x_M,y_M,z_M) + t~_1*t_SSD*(a_x,a_y,a_z)
+	// is on surface z = H_SSD
+	// ==> t~_1 = (H_SSD-z_M)/(t_SSD*a_z)
+	// Check if x_1^2 + y_1^2 > R_SSD^2
+
+	double t_tilde_1 = (H_SSD - z_M) / (t_SSD*a_z);
+	double x_1 = x_M + t_tilde_1*t_SSD*a_x;
+	double y_1 = y_M + t_tilde_1*t_SSD*a_y;
+
+	bool H1P1 = (x_1*x_1+y_1*y_1-R_SSD*R_SSD > 0); // HIT if true
+
+
+	// Part 2
+	// 
+	// Define t~'_1 that
+	// vec{P'_1} = (x_M,y_M,z_M) + t~'_1*t_SSD*(a_x,a_y,a_z)
+	// is on surface x'_1^2+y'_1^2 = R_SSD^2
+	// Check if 0 < z'_1 < H_SSD
 
 	double coef_a = ((a_x*a_x) + (a_y*a_y))*t_SSD*t_SSD;
 	double coef_b = (x_M*a_x + y_M*a_y)*2.0*t_SSD;
 	double coef_c = x_M*x_M + y_M*y_M - R_SSD*R_SSD;
 
-	double t_hitsurface1 = solve_quad(coef_a,coef_b,coef_c);
-	double x = x_M + t_hitsurface1*t_SSD*a_x;
-	double y = y_M + t_hitsurface1*t_SSD*a_y;
-	double z = z_M + t_hitsurface1*t_SSD*a_z;
+	double t_tilde_prime_1 = solve_quad(coef_a,coef_b,coef_c);
+	double z_1 = z_M + t_tilde_prime_1*t_SSD*a_z;
 
-	if (z <= 0.0){
-		// The trajectory does not pass through here
-		return false;
-	}else if (z < H_SSD){
+	bool H1P2 = (z_1 >= 0.0) && (z_1 <= H_SSD); // HIT if true
+
+	if (H1P1){
+		// The trajectory hits the surface of the SSD case
+		return true;
+	}else if (H1P2){
 		// The trajectory hits the side of the SSD case
 		return true;
 	}else{
-		// The trajectory hits the surface of the SSD case
-		return true;
+		// The trajectory does not hit this component
+		return false;
 	}
 }
 
 // Hit Component 2: SSD box lid
 // Returns TRUE if the trajectory (x_M,y_M,z_M,a_x,a_y,a_z) penetrates the surface
 bool HitSurface2 (double x_M, double y_M, double z_M, double a_x, double a_y, double a_z, double t_SSD, double R_Box, double H_SSD, double Z_Box){
-	// vec{P} = (x_M,y_M,z_M) + t~*t_SSD*(a_x,a_y,a_z)
-	// hits x^2+y^2 > R_Box^2, z = Z_Box at t~ = t_hitsurface2 ?
-	// (x_M+t~*t_SSD*a_x)^2 + (y_M+t~*t_SSD*a_y)^2 > R_Box^2
-	// {(t_SSD*a_x)^2+(t_SSD*a_y)^2}*t~^2
-	// + {2*x_M*t_SSD*a_x+2*y_M*t_SSD*a_y}*t~
-	// + x_M^2 + y_M^2 - R_Box^2 > 0
+	// Part 1
+	//
+	// Define t~_2 that
+	// vec{P_2} = (x_M,y_M,z_M) + t~_2*t_SSD*(a_x,a_y,a_z)
+	// is on surface z = Z_Box
+	// ==> t~_1 = (Z_Box-z_M)/(t_SSD*a_z)
+	// Check if x_2^2 + y_2^2 > R_Box^2
+
+	double t_tilde_2 = (Z_Box - z_M) / (t_SSD*a_z);
+	double x_2 = x_M + t_tilde_2*t_SSD*a_x;
+	double y_2 = y_M + t_tilde_2*t_SSD*a_y;
+
+	bool H2P1 = (x_2*x_2+y_2*y_2-R_Box*R_Box > 0); // HIT if true
+
+
+	// Part 2
+	// 
+	// Define t~'_2 that
+	// vec{P'_2} = (x_M,y_M,z_M) + t~'_2*t_SSD*(a_x,a_y,a_z)
+	// is on surface x'_2^2+y'_2^2 = R_Box^2
+	// Check if H_SSD < z'_2 < Z_Box
 
 	double coef_a = ((a_x*a_x) + (a_y*a_y))*t_SSD*t_SSD;
 	double coef_b = (x_M*a_x + y_M*a_y)*2.0*t_SSD;
 	double coef_c = x_M*x_M + y_M*y_M - R_Box*R_Box;
 
-	double t_hitsurface2 = solve_quad(coef_a,coef_b,coef_c);
-	double x = x_M + t_hitsurface2*t_SSD*a_x;
-	double y = y_M + t_hitsurface2*t_SSD*a_y;
-	double z = z_M + t_hitsurface2*t_SSD*a_z;
+	double t_tilde_prime_2 = solve_quad(coef_a,coef_b,coef_c);
+	double z_2 = z_M + t_tilde_prime_2*t_SSD*a_z;
 
-	if (z <= H_SSD){
-		// The trajectory does not pass through here
-		return false;
-	}else if (z < Z_Box){
-		// The trajectory hits the side of the SSD box
+	bool H2P2 = (z_2 >= H_SSD) && (z_2 <= Z_Box); // HIT if true
+
+	if (H2P1){
+		// The trajectory hits the surface of the SSD case
+		return true;
+	}else if (H2P2){
+		// The trajectory hits the side of the SSD case
 		return true;
 	}else{
-		// The trajectory hits the surface of the SSD box
-		return true;
+		// The trajectory does not hit this component
+		return false;
 	}
-
 }
 
 
@@ -168,6 +197,7 @@ bool reach_ssd (double x_M, double y_M, double z_M, double a_x, double a_y, doub
 		}else if (hits_SSD){
 			return true;
 		}else{
+			cout << "Exception!" << endl;
 			return false;
 		}
 	}
@@ -279,7 +309,7 @@ int main(int argc, char** argv){
 	double geometry[11];
 	geometry[0] = 13.0; // R_FC:Radius of FC
 //	geometry[1] = 105.8; // z_0:Position of FC bottom
-	geometry[1] = 20.; // z_0:Position of FC bottom
+	geometry[1] = 18; // z_0:Position of FC bottom
 	geometry[2] = 15.0; // z_FC:Height of FC inner side
 	geometry[3] = 20.01; // x_Am:X position of Am
 	geometry[4] = 7.48; // z_Am:Z position of Am
