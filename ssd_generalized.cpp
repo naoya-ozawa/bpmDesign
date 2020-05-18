@@ -176,20 +176,20 @@ bool reach_ssd (double x_M, double y_M, double z_M, double a_x, double a_y, doub
 	// vec{P} = (x_M+t~*t_SSD*a_x, y_M+t~*t_SSD*a_y, z_M+t~*t_SSD*a_z)
 	// The particle hits the surface z = 0 when t~ = 1
 	double t_s = t_SSD(z_M,a_z);
-	cout << "t_SSD = " << t_s << endl;
+//	cout << "t_SSD = " << t_s << endl;
 	if (t_s <= 0.0){
 		// discard trajectories that do not hit the z = 0 surface
 		return false;
 	}else{
 		// Hit Component 1
 		bool hits_hitsurface1 = HitSurface1(x_M,y_M,z_M,a_x,a_y,a_z,t_s,R_SSD,H_SSD);
-		cout << "Hit 1: " << hits_hitsurface1 << endl;
+//		cout << "Hit 1: " << hits_hitsurface1 << endl;
 		// Hit Component 2
 		bool hits_hitsurface2 = HitSurface2(x_M,y_M,z_M,a_x,a_y,a_z,t_s,R_Box,H_SSD,Z_Box);
-		cout << "Hit 2: " << hits_hitsurface2 << endl;
+//		cout << "Hit 2: " << hits_hitsurface2 << endl;
 		// SSD Surface
 		bool hits_SSD = HitsSSD(x_M,y_M,a_x,a_y,t_s,R_SSD);
-		cout << "Hit SSD: " << hits_SSD << endl;
+//		cout << "Hit SSD: " << hits_SSD << endl;
 		if (hits_hitsurface1){
 			return false;
 		}else if (hits_hitsurface2){
@@ -302,17 +302,16 @@ int main(int argc, char** argv){
 //	int N_Fr = 100000; // 10^5 per sec.
 	int N_Fr = 10; // for testing
 //	int N_Average = 180; // 3 min average
-	int N_Average = 1; // for testing
+	int N_Average = 10; // for testing
 	cout << "Flying " << N_Fr << " alpha particles " << N_Average << " times." << endl;
 
 	// BPM geometry parameters
 	double geometry[11];
 	geometry[0] = 13.0; // R_FC:Radius of FC
-//	geometry[1] = 105.8; // z_0:Position of FC bottom
-	geometry[1] = 18; // z_0:Position of FC bottom
+	geometry[1] = 105.8; // z_0:Position of FC bottom
 	geometry[2] = 15.0; // z_FC:Height of FC inner side
-	geometry[3] = 20.01; // x_Am:X position of Am
-	geometry[4] = 7.48; // z_Am:Z position of Am
+	geometry[3] = 20.251; // x_Am:X position of Am
+	geometry[4] = 7.512; // z_Am:Z position of Am
 	geometry[5] = 15.0*2.0*TMath::Pi()/360.0; // th_Am:tilt angle of Am
 	geometry[6] = 1.0; // R_Am:Radius of Am source
 	geometry[7] = 13.8; // R_SSD:Radius of SSD
@@ -361,7 +360,7 @@ int main(int argc, char** argv){
 	normal_distribution<double> randyeta(0.,geometry[6]);
 
 	for (int j = 0; j < N_Average; ++j){
-		cout << "Start loop j = " << j+1 << endl;
+//		cout << "Start loop j = " << j+1 << endl;
 		N_Detected = 0;
 		double x_mean = 0.0;
 		double x_sqmn = 0.0;
@@ -373,7 +372,7 @@ int main(int argc, char** argv){
 		double ay_mean = 0.0;
 		double az_mean = 0.0;
 		for (int i = 0; i < N_Fr; ++i){
-			cout << "Start loop i = " << i+1 << endl;
+//			cout << "Start loop i = " << i+1 << endl;
 
 //			// Particle generation for Case 1:
 //			double z_M = geometry[1];
@@ -426,8 +425,8 @@ int main(int argc, char** argv){
 			double a_y = randnorm(engine);
 			double a_z = randnorm(engine);
 			// Calculate approximate solid angle
-			double alpha = 5.0 * 2.*TMath::Pi()/360.;
-			sa = 2.*TMath::Pi()*(1. - TMath::Cos(alpha))*TMath::Sin(21.0 * 2.*TMath::Pi()/360.);
+			double alpha = TMath::ATan( (geometry[7]/2.0) / (TMath::Sqrt(geometry[3]*geometry[3] + geometry[4]*geometry[4])) );
+			sa = 2.*TMath::Pi()*(1. - TMath::Cos(alpha))*TMath::Sin(geometry[5])*(1./2.);
 			// End Case 3
 
 			x_mean += x_M;
@@ -471,8 +470,6 @@ int main(int argc, char** argv){
 //					trajectory->Draw();
 //					cout << "Added trajectory " << tot_detected << endl;
 //				}
-			}
-			if (true){
 				double t = t_SSD(z_M,a_z);
 				double x_t, y_t, z_t;
 				x_t = x_M + a_x*t;
@@ -485,7 +482,7 @@ int main(int argc, char** argv){
 					y_t = y_M + a_y*tR;
 					z_t = z_M + a_z*tR;
 				}else{
-					cout << "TRAJECTORY DRAWN" << endl;
+//					cout << "TRAJECTORY DRAWN" << endl;
 				}
 				TPolyLine3D *trajectory = new TPolyLine3D(-1);
 				trajectory->SetLineWidth(1);
@@ -494,7 +491,7 @@ int main(int argc, char** argv){
 				trajectory->SetPoint(0,x_M,y_M,z_M);
 				g_traj->SetPoint(2*(tot_detected-1)+1,x_t,y_t,z_t);
 				trajectory->SetPoint(1,x_t,y_t,z_t);
-				trajectory->Draw();
+				trajectory->Draw();			
 			}
 		}
 		detection += double(N_Detected)/double(N_Fr);
@@ -517,7 +514,7 @@ int main(int argc, char** argv){
 		ax_mm += ax_mean;
 		ay_mm += ay_mean;
 		az_mm += az_mean;
-		cout << j << " sets run" << endl;
+//		cout << j << " sets run" << endl;
 	}
 
 	detection /= double(N_Average);
