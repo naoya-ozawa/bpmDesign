@@ -56,42 +56,42 @@ double t_SSD (double z_M, double a_z){
 	}
 }
 
-bool HitsSSD (double x_M, double y_M, double a_x, double a_y, double t_SSD, double R_SSD){
+bool HitsSSD (double x_M, double y_M, double a_x, double a_y, double t_SSD, double R_SSD, double x_SSD){
 	// vec{P} = (x_M,y_M,z_M) + t_SSD*(a_x,a_y,a_z)
-	// is within (x-x_0)^2+y^2<R_SSD^2 ?
+	// is within (x-x_SSD)^2+y^2<R_SSD^2 ?
 	double x = x_M + t_SSD*a_x;
 	double y = y_M + t_SSD*a_y;
-	return (x*x + y*y < R_SSD*R_SSD);
+	return ((x-x_SSD)*(x-x_SSD) + y*y < R_SSD*R_SSD);
 }
 
 // Hit Component 1: SSD case
 // Returns TRUE if trajectory (x_M,y_M,z_M,a_x,a_y,a_z) penetrates the surface
-bool HitSurface1 (double x_M, double y_M, double z_M, double a_x, double a_y, double a_z, double t_SSD, double R_SSD, double H_SSD){
+bool HitSurface1 (double x_M, double y_M, double z_M, double a_x, double a_y, double a_z, double t_SSD, double R_SSD, double H_SSD, double x_SSD){
 	// Part 1
 	//
 	// Define t~_1 that
 	// vec{P_1} = (x_M,y_M,z_M) + t~_1*t_SSD*(a_x,a_y,a_z)
 	// is on surface z = H_SSD
 	// ==> t~_1 = (H_SSD-z_M)/(t_SSD*a_z)
-	// Check if x_1^2 + y_1^2 > R_SSD^2
+	// Check if (x_1-x_SSD)^2 + y_1^2 > R_SSD^2
 
 	double t_tilde_1 = (H_SSD - z_M) / (t_SSD*a_z);
 	double x_1 = x_M + t_tilde_1*t_SSD*a_x;
 	double y_1 = y_M + t_tilde_1*t_SSD*a_y;
 
-	bool H1P1 = (x_1*x_1+y_1*y_1-R_SSD*R_SSD > 0); // HIT if true
+	bool H1P1 = ((x_1-x_SSD)*(x_1-x_SSD)+y_1*y_1-R_SSD*R_SSD > 0); // HIT if true
 
 
 	// Part 2
 	// 
 	// Define t~'_1 that
 	// vec{P'_1} = (x_M,y_M,z_M) + t~'_1*t_SSD*(a_x,a_y,a_z)
-	// is on surface x'_1^2+y'_1^2 = R_SSD^2
+	// is on surface (x'_1-x_SSD)^2+y'_1^2 = R_SSD^2
 	// Check if 0 < z'_1 < H_SSD
 
 	double coef_a = ((a_x*a_x) + (a_y*a_y))*t_SSD*t_SSD;
-	double coef_b = (x_M*a_x + y_M*a_y)*2.0*t_SSD;
-	double coef_c = x_M*x_M + y_M*y_M - R_SSD*R_SSD;
+	double coef_b = ((x_M-x_SSD)*a_x + y_M*a_y)*2.0*t_SSD;
+	double coef_c = (x_M-x_SSD)*(x_M-x_SSD) + y_M*y_M - R_SSD*R_SSD;
 
 	double t_tilde_prime_1 = solve_quad(coef_a,coef_b,coef_c);
 	double z_1 = z_M + t_tilde_prime_1*t_SSD*a_z;
@@ -112,32 +112,32 @@ bool HitSurface1 (double x_M, double y_M, double z_M, double a_x, double a_y, do
 
 // Hit Component 2: SSD box lid
 // Returns TRUE if the trajectory (x_M,y_M,z_M,a_x,a_y,a_z) penetrates the surface
-bool HitSurface2 (double x_M, double y_M, double z_M, double a_x, double a_y, double a_z, double t_SSD, double R_Box, double H_SSD, double Z_Box){
+bool HitSurface2 (double x_M, double y_M, double z_M, double a_x, double a_y, double a_z, double t_SSD, double R_Box, double H_SSD, double Z_Box, double x_SSD){
 	// Part 1
 	//
 	// Define t~_2 that
 	// vec{P_2} = (x_M,y_M,z_M) + t~_2*t_SSD*(a_x,a_y,a_z)
 	// is on surface z = Z_Box
 	// ==> t~_1 = (Z_Box-z_M)/(t_SSD*a_z)
-	// Check if x_2^2 + y_2^2 > R_Box^2
+	// Check if (x_2-x_SSD)^2 + y_2^2 > R_Box^2
 
 	double t_tilde_2 = (Z_Box - z_M) / (t_SSD*a_z);
 	double x_2 = x_M + t_tilde_2*t_SSD*a_x;
 	double y_2 = y_M + t_tilde_2*t_SSD*a_y;
 
-	bool H2P1 = (x_2*x_2+y_2*y_2-R_Box*R_Box > 0); // HIT if true
+	bool H2P1 = ((x_2-x_SSD)*(x_2-x_SSD)+y_2*y_2-R_Box*R_Box > 0); // HIT if true
 
 
 	// Part 2
 	// 
 	// Define t~'_2 that
 	// vec{P'_2} = (x_M,y_M,z_M) + t~'_2*t_SSD*(a_x,a_y,a_z)
-	// is on surface x'_2^2+y'_2^2 = R_Box^2
+	// is on surface (x'_2-x_SSD)^2+y'_2^2 = R_Box^2
 	// Check if H_SSD < z'_2 < Z_Box
 
 	double coef_a = ((a_x*a_x) + (a_y*a_y))*t_SSD*t_SSD;
-	double coef_b = (x_M*a_x + y_M*a_y)*2.0*t_SSD;
-	double coef_c = x_M*x_M + y_M*y_M - R_Box*R_Box;
+	double coef_b = ((x_M-x_SSD)*a_x + y_M*a_y)*2.0*t_SSD;
+	double coef_c = (x_M-x_SSD)*(x_M-x_SSD) + y_M*y_M - R_Box*R_Box;
 
 	double t_tilde_prime_2 = solve_quad(coef_a,coef_b,coef_c);
 	double z_2 = z_M + t_tilde_prime_2*t_SSD*a_z;
@@ -171,6 +171,7 @@ bool reach_ssd (double x_M, double y_M, double z_M, double a_x, double a_y, doub
 	double H_SSD = par[8]; // Height of SSD case
 	double R_Box = par[9]; // Radius of hole in SSD Box
 	double Z_Box = par[10]; // Z position of SSD Box surface
+	double x_SSD = par[11]; // X displacement of SSD wrt FC
 
 	// The particle position is defined as
 	// vec{P} = (x_M+t~*t_SSD*a_x, y_M+t~*t_SSD*a_y, z_M+t~*t_SSD*a_z)
@@ -182,13 +183,13 @@ bool reach_ssd (double x_M, double y_M, double z_M, double a_x, double a_y, doub
 		return false;
 	}else{
 		// Hit Component 1
-		bool hits_hitsurface1 = HitSurface1(x_M,y_M,z_M,a_x,a_y,a_z,t_s,R_SSD,H_SSD);
+		bool hits_hitsurface1 = HitSurface1(x_M,y_M,z_M,a_x,a_y,a_z,t_s,R_SSD,H_SSD,x_SSD);
 //		cout << "Hit 1: " << hits_hitsurface1 << endl;
 		// Hit Component 2
-		bool hits_hitsurface2 = HitSurface2(x_M,y_M,z_M,a_x,a_y,a_z,t_s,R_Box,H_SSD,Z_Box);
+		bool hits_hitsurface2 = HitSurface2(x_M,y_M,z_M,a_x,a_y,a_z,t_s,R_Box,H_SSD,Z_Box,x_SSD);
 //		cout << "Hit 2: " << hits_hitsurface2 << endl;
 		// SSD Surface
-		bool hits_SSD = HitsSSD(x_M,y_M,a_x,a_y,t_s,R_SSD);
+		bool hits_SSD = HitsSSD(x_M,y_M,a_x,a_y,t_s,R_SSD,x_SSD);
 //		cout << "Hit SSD: " << hits_SSD << endl;
 		if (hits_hitsurface1){
 			return false;
@@ -217,7 +218,7 @@ int draw_objects(double *par){
 	double H_SSD = par[8]; // Height of SSD case
 	double R_Box = par[9]; // Radius of hole in SSD Box
 	double Z_Box = par[10]; // Z position of SSD Box surface
-
+	double x_SSD = par[11]; // X displacement of SSD wrt FC
 
 	// Draw FC bottom
 	int fc_points = 1000;
@@ -241,14 +242,14 @@ int draw_objects(double *par){
 	// Draw SSD 
 	TPolyLine3D *ssd_surf = new TPolyLine3D(fc_points);
 	for (int k = 0; k < fc_points; ++k){
-		ssd_surf->SetPoint(k, R_SSD*TMath::Cos(2.*double(k)*TMath::Pi()/double(fc_points-1)), R_SSD*TMath::Sin(2.*double(k)*TMath::Pi()/double(fc_points-1)), 0.0);
+		ssd_surf->SetPoint(k, x_SSD+R_SSD*TMath::Cos(2.*double(k)*TMath::Pi()/double(fc_points-1)), R_SSD*TMath::Sin(2.*double(k)*TMath::Pi()/double(fc_points-1)), 0.0);
 	}
 	ssd_surf->SetLineWidth(3);
 	ssd_surf->SetLineColor(3);
 	ssd_surf->Draw();
 	TPolyLine3D *ssd_top = new TPolyLine3D(fc_points);
 	for (int k = 0; k < fc_points; ++k){
-		ssd_top->SetPoint(k, R_SSD*TMath::Cos(2.*double(k)*TMath::Pi()/double(fc_points-1)), R_SSD*TMath::Sin(2.*double(k)*TMath::Pi()/double(fc_points-1)), H_SSD);
+		ssd_top->SetPoint(k, x_SSD+R_SSD*TMath::Cos(2.*double(k)*TMath::Pi()/double(fc_points-1)), R_SSD*TMath::Sin(2.*double(k)*TMath::Pi()/double(fc_points-1)), H_SSD);
 	}
 	ssd_top->SetLineWidth(3);
 	ssd_top->SetLineColor(3);
@@ -258,7 +259,7 @@ int draw_objects(double *par){
 	//Draw SSD Box Hole (upper surface)
 	TPolyLine3D *holder_u = new TPolyLine3D(fc_points);
 	for (int k = 0; k < fc_points; ++k){
-		holder_u->SetPoint(k, R_Box*TMath::Cos(2.*double(k)*TMath::Pi()/double(fc_points-1)), R_Box*TMath::Sin(2.*double(k)*TMath::Pi()/double(fc_points-1)), Z_Box);
+		holder_u->SetPoint(k, x_SSD+R_Box*TMath::Cos(2.*double(k)*TMath::Pi()/double(fc_points-1)), R_Box*TMath::Sin(2.*double(k)*TMath::Pi()/double(fc_points-1)), Z_Box);
 	}
 	holder_u->SetLineWidth(3);
 	holder_u->SetLineColor(3);
@@ -266,7 +267,7 @@ int draw_objects(double *par){
 	//Draw SSD Box Hole (lower surface)
 	TPolyLine3D *holder_l = new TPolyLine3D(fc_points);
 	for (int k = 0; k < fc_points; ++k){
-		holder_l->SetPoint(k, R_Box*TMath::Cos(2.*double(k)*TMath::Pi()/double(fc_points-1)), R_Box*TMath::Sin(2.*double(k)*TMath::Pi()/double(fc_points-1)), H_SSD);
+		holder_l->SetPoint(k, x_SSD+R_Box*TMath::Cos(2.*double(k)*TMath::Pi()/double(fc_points-1)), R_Box*TMath::Sin(2.*double(k)*TMath::Pi()/double(fc_points-1)), H_SSD);
 	}
 	holder_l->SetLineWidth(3);
 	holder_l->SetLineColor(3);
@@ -283,7 +284,7 @@ int draw_objects(double *par){
 		double xx = rhox*TMath::Cos(2.*double(k)*TMath::Pi()/double(fc_points-1))+rho0x;
 		double yy = rhoy*TMath::Sin(2.*double(k)*TMath::Pi()/double(fc_points-1));
 		double zz = rhoz*TMath::Cos(2.*double(k)*TMath::Pi()/double(fc_points-1))+rho0z;
-		Amsrc->SetPoint(k, xx, yy, zz);
+		Amsrc->SetPoint(k, xx+x_SSD, yy, zz);
 	}
 	Amsrc->SetLineWidth(3);
 	Amsrc->SetLineColor(9);
@@ -318,6 +319,7 @@ int main(int argc, char** argv){
 	geometry[8] = 2.0 ; // H_SSD:Height of SSD case
 	geometry[9] = 20.0; // R_Box:Radius of hole in SSD Box
 	geometry[10] = 3.1; // Z_Box:Z position of SSD Box surface
+	geometry[11] = 6.0; // x_SSD:X displacement of SSD wrt FC
 
 	c1->cd(1);
 
@@ -387,7 +389,7 @@ int main(int argc, char** argv){
 			double a_y = randnorm(engine);
 			double a_z = randnorm(engine);
 			// Calculate approximate solid angle
-			double alpha = TMath::ATan(geometry[7]/geometry[1]);
+			double alpha = TMath::ATan(geometry[7]/TMath::Sqrt(geometry[1]*geometry[1]+geometry[11]*geometry[11]));
 			sa = 2.*TMath::Pi()*(1. - TMath::Cos(alpha));
 			// End Case 1
 
@@ -476,9 +478,9 @@ int main(int argc, char** argv){
 				x_t = x_M + a_x*t;
 				y_t = y_M + a_y*t;
 				z_t = z_M + a_z*t; // = 0
-				double M = TMath::Sqrt(x_t*x_t + y_t*y_t);
+				double M = TMath::Sqrt((x_t-geometry[11])*(x_t-geometry[11]) + y_t*y_t);
 				if (M > geometry[7]){
-					double tR = solve_quad(a_x*a_x+a_y*a_y, 2.*x_M*a_x+2.*y_M*a_y, x_M*x_M+y_M*y_M-geometry[7]*geometry[7]);
+					double tR = solve_quad(a_x*a_x+a_y*a_y, 2.*(x_M-geometry[11])*a_x+2.*y_M*a_y, (x_M-geometry[11])*(x_M-geometry[11])+y_M*y_M-geometry[7]*geometry[7]);
 					x_t = x_M + a_x*tR;
 					y_t = y_M + a_y*tR;
 					z_t = z_M + a_z*tR;
