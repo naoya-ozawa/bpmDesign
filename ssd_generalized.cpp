@@ -156,6 +156,35 @@ bool HitSurface2 (double x_M, double y_M, double z_M, double a_x, double a_y, do
 	}
 }
 
+// Hit Component 3: Pipe
+bool HitSurface3 (double x_M, double y_M, double z_M, double a_x, double a_y, double a_z, double t_SSD, double x_SSD){
+
+	// Check if, for any value of t~_3 (0 < t~_3 < 1),
+	// vec{P_3} = (x_M,y_M,z_M) + t~_3*t_SSD*(a_x,a_y,a_z) is in region
+	// (x_3-x_SSD)^2+y_3^2 > (16/2 mm)^2
+	// and
+	// y_3^2+(z_3-96.55 mm)^2 > (35.5/2 mm)^2
+	// and
+	// 60 < z < 96.55
+
+	bool hitflag = false;
+	int prec = 1000;
+
+	for (int i=0; i<prec; ++i){
+		double x_3 = x_M + (double(i)/double(prec))*t_SSD*a_x;
+		double y_3 = y_M + (double(i)/double(prec))*t_SSD*a_y;
+		double z_3 = z_M + (double(i)/double(prec))*t_SSD*a_z;
+		bool hit1 = ((x_3-x_SSD)*(x_3-x_SSD) + y_3*y_3 - (16./2.)*(16./2.)) > 0.;
+		bool hit2 = (y_3*y_3 + (z_3-96.55)*(z_3-96.55) - (35.5/2.)*(35.5/2.)) > 0.;
+		bool hitpipe = hit1 && hit2;
+		bool hitregion = (z_3 > 96.55-18.) && (z_3 < 96.55);
+		if (hitpipe && hitregion){
+			hitflag = true;
+		}
+	}
+	return hitflag;
+}
+
 
 // Does the trajectory reach the SSD?
 bool reach_ssd (double x_M, double y_M, double z_M, double a_x, double a_y, double a_z, double* par){
@@ -188,6 +217,8 @@ bool reach_ssd (double x_M, double y_M, double z_M, double a_x, double a_y, doub
 		// Hit Component 2
 		bool hits_hitsurface2 = HitSurface2(x_M,y_M,z_M,a_x,a_y,a_z,t_s,R_Box,H_SSD,Z_Box,x_SSD);
 //		cout << "Hit 2: " << hits_hitsurface2 << endl;
+		bool hits_hitsurface3 = HitSurface3(x_M,y_M,z_M,a_x,a_y,a_z,t_s,x_SSD);
+//		cout << "Hit 3: " << hits_hitsurface3 << endl;
 		// SSD Surface
 		bool hits_SSD = HitsSSD(x_M,y_M,a_x,a_y,t_s,R_SSD,x_SSD);
 //		cout << "Hit SSD: " << hits_SSD << endl;
@@ -195,10 +226,12 @@ bool reach_ssd (double x_M, double y_M, double z_M, double a_x, double a_y, doub
 			return false;
 		}else if (hits_hitsurface2){
 			return false;
+		}else if (hits_hitsurface3){
+			return false;
 		}else if (hits_SSD){
 			return true;
 		}else{
-			cout << "Exception!" << endl;
+//			cout << "Exception! (t_SSD = " << t_s << ")" << endl;
 			return false;
 		}
 	}
@@ -319,7 +352,7 @@ int main(int argc, char** argv){
 	geometry[8] = 2.0 ; // H_SSD:Height of SSD case
 	geometry[9] = 20.0; // R_Box:Radius of hole in SSD Box
 	geometry[10] = 3.1; // Z_Box:Z position of SSD Box surface
-	geometry[11] = 6.0; // x_SSD:X displacement of SSD wrt FC
+	geometry[11] = 2.6; // x_SSD:X displacement of SSD wrt FC
 
 	c1->cd(1);
 
@@ -496,6 +529,8 @@ int main(int argc, char** argv){
 				trajectory->SetPoint(1,x_t,y_t,z_t);
 				trajectory->Draw();			
 			}
+			// Progress
+			cout << "\r" << 100.*double(j*N_Fr+(i+1))/double(N_Fr*N_Average) << "% completed...";
 		}
 		detection += double(N_Detected)/double(N_Fr);
 		detect_sq += double(N_Detected)*double(N_Detected)/(double(N_Fr)*double(N_Fr));
@@ -517,13 +552,13 @@ int main(int argc, char** argv){
 		ax_mm += ax_mean;
 		ay_mm += ay_mean;
 		az_mm += az_mean;
-//		cout << j << " sets run" << endl;
 	}
 
 	detection /= double(N_Average);
 	detect_sq /= double(N_Average);
 	double dete_StDev = TMath::Sqrt(detect_sq - (detection*detection));
 	double det_error = dete_StDev / TMath::Sqrt(N_Average);
+	cout << endl;
 	cout << 100.*detection << " +- " << 100.*det_error << "% entered the SSD holder." << endl;
 	x_mm /= double(N_Average);
 	x_stdv /= double(N_Average);
