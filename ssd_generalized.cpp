@@ -392,20 +392,20 @@ int main(int argc, char** argv){
 	double az_mm = 0.0;
 
 	normal_distribution<double> randnorm(0.,1.);
-	// for case 1
-	double centerX = 0.0;
-	double centerY = 0.0;
-	double stdevX = 10.;
-	double stdevY = 10.;
-	normal_distribution<double> randx(centerX,stdevX);
-	normal_distribution<double> randy(centerY,stdevY);
+//	// for case 1
+//	double centerX = 0.0;
+//	double centerY = 0.0;
+//	double stdevX = 1.;
+//	double stdevY = 1.;
+//	normal_distribution<double> randx(centerX,stdevX);
+//	normal_distribution<double> randy(centerY,stdevY);
 //	// for case 2
 //	normal_distribution<double> randx(0.,2.*geometry[0]);
 //	normal_distribution<double> randy(0.,2.*geometry[0]);
 //	uniform_real_distribution<double> randz(geometry[1]-geometry[2],geometry[1]);
-//	// for case 4
-//	normal_distribution<double> randxi(0.,geometry[6]);
-//	normal_distribution<double> randyeta(0.,geometry[6]);
+	// for case 4
+	normal_distribution<double> randxi(0.,geometry[6]);
+	normal_distribution<double> randyeta(0.,geometry[6]);
 
 	for (int j = 0; j < N_Average; ++j){
 //		cout << "Start loop j = " << j+1 << endl;
@@ -422,30 +422,30 @@ int main(int argc, char** argv){
 		for (int i = 0; i < N_Fr; ++i){
 //			cout << "Start loop i = " << i+1 << endl;
 
-			// Particle generation for Case 1:
-			double x_M, y_M, z_M;
-			double M = 9999.;
-			bool outofbox = true;
-			while (outofbox){
-				x_M = randx(engine);
-				bool outx = (x_M < -geometry[12]/2.) || (x_M > geometry[12]/2.);
-				y_M = randy(engine);
-				bool outy = (y_M < -geometry[13]/2.) || (y_M > geometry[13]/2.);
-				M = TMath::Sqrt(x_M*x_M + y_M*y_M);
-				if (M < geometry[0]){
-					z_M = geometry[1];
-				}else{
-					z_M = geometry[1]-geometry[2];
-				}
-				outofbox = outx || outy;
-			}
-			double a_x = randnorm(engine);
-			double a_y = randnorm(engine);
-			double a_z = randnorm(engine);
-			// Calculate approximate solid angle
-			double alpha = TMath::ATan(geometry[7]/TMath::Sqrt(geometry[1]*geometry[1]+geometry[11]*geometry[11]));
-			sa = 2.*TMath::Pi()*(1. - TMath::Cos(alpha));
-			// End Case 1
+//			// Particle generation for Case 1:
+//			double x_M, y_M, z_M;
+//			double M = 9999.;
+//			bool outofbox = true;
+//			while (outofbox){
+//				x_M = randx(engine);
+//				bool outx = (x_M < -geometry[12]/2.) || (x_M > geometry[12]/2.);
+//				y_M = randy(engine);
+//				bool outy = (y_M < -geometry[13]/2.) || (y_M > geometry[13]/2.);
+//				M = TMath::Sqrt(x_M*x_M + y_M*y_M);
+//				if (M < geometry[0]){
+//					z_M = geometry[1];
+//				}else{
+//					z_M = geometry[1]-geometry[2];
+//				}
+//				outofbox = outx || outy;
+//			}
+//			double a_x = randnorm(engine);
+//			double a_y = randnorm(engine);
+//			double a_z = randnorm(engine);
+//			// Calculate approximate solid angle
+//			double alpha = TMath::ATan(geometry[7]/TMath::Sqrt(geometry[1]*geometry[1]+geometry[11]*geometry[11]));
+//			sa = 2.*TMath::Pi()*(1. - TMath::Cos(alpha));
+//			// End Case 1
 
 //			// Particle generation for Case 2:
 //			double x_M, y_M;
@@ -464,26 +464,26 @@ int main(int argc, char** argv){
 //			sa = 2.*TMath::Pi()*(1. - TMath::Cos(alpha));
 //			// End Case 2
 
-//			// Particle generation for Case 4:
-//			double x_M, y_M, z_M;
-//			double M = 9999.;
-//			while (M > geometry[6]){
-//				double xi_M = randxi(engine);
-//				double yeta_M = randyeta(engine);
-//				double zeta_M = 0.0;
-//				M = TMath::Sqrt(xi_M*xi_M + yeta_M*yeta_M);
-//				x_M = xi_M*TMath::Cos(geometry[5]) - zeta_M*TMath::Sin(geometry[5]) + geometry[3];
-//				y_M = yeta_M;
-//				z_M = xi_M*TMath::Sin(geometry[5]) + zeta_M*TMath::Cos(geometry[5]) + geometry[4];
-//			}
-//			double a_x = randnorm(engine);
-//			double a_y = randnorm(engine);
-//			double a_z = randnorm(engine);
-//			// Calculate approximate solid angle
-//			double alpha = TMath::ATan( (geometry[7]/2.0) / (TMath::Sqrt(geometry[3]*geometry[3] + geometry[4]*geometry[4])) );
-//			double beta = TMath::ATan(geometry[4]/geometry[3]);
-//			sa = 2.*TMath::Pi()*(1. - TMath::Cos(alpha))*TMath::Sin(beta);
-//			// End Case 3
+			// Particle generation for Case 4:
+			double x_M, y_M, z_M;
+			double M = 9999.;
+			while (M > geometry[6]){
+				double xi_M = randxi(engine);
+				double yeta_M = randyeta(engine);
+				double zeta_M = 0.0;
+				M = TMath::Sqrt(xi_M*xi_M + yeta_M*yeta_M);
+				x_M = xi_M*TMath::Cos(geometry[5]) - zeta_M*TMath::Sin(geometry[5]) + geometry[3] + geometry[11];
+				y_M = yeta_M;
+				z_M = xi_M*TMath::Sin(geometry[5]) + zeta_M*TMath::Cos(geometry[5]) + geometry[4];
+			}
+			double a_x = randnorm(engine);
+			double a_y = randnorm(engine);
+			double a_z = randnorm(engine);
+			// Calculate approximate solid angle
+			double alpha = TMath::ATan( (geometry[7]/2.0) / (TMath::Sqrt(geometry[3]*geometry[3] + geometry[4]*geometry[4])) );
+			double beta = TMath::ATan(geometry[4]/geometry[3]);
+			sa = 2.*TMath::Pi()*(1. - TMath::Cos(alpha))*TMath::Sin(beta);
+			// End Case 3
 
 			x_mean += x_M;
 			x_sqmn += x_M*x_M;
