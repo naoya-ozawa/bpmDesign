@@ -252,6 +252,8 @@ int draw_objects(double *par){
 	double R_Box = par[9]; // Radius of hole in SSD Box
 	double Z_Box = par[10]; // Z position of SSD Box surface
 	double x_SSD = par[11]; // X displacement of SSD wrt FC
+	double X_fclid = par[12]; // X length of FC lid
+	double Y_fclid = par[13]; // Y length of FC lid
 
 	// Draw FC bottom
 	int fc_points = 1000;
@@ -271,6 +273,15 @@ int draw_objects(double *par){
 	fct->SetLineWidth(3);
 	fct->SetLineColor(4);
 	fct->Draw();
+	TPolyLine3D *fcl = new TPolyLine3D(5);
+	fcl->SetLineWidth(3);
+	fcl->SetLineColor(4);
+	fcl->SetPoint(0,-X_fclid/2.,-Y_fclid/2.,z_0-z_FC);
+	fcl->SetPoint(1,X_fclid/2.,-Y_fclid/2.,z_0-z_FC);
+	fcl->SetPoint(2,X_fclid/2.,Y_fclid/2.,z_0-z_FC);
+	fcl->SetPoint(3,-X_fclid/2.,Y_fclid/2.,z_0-z_FC);
+	fcl->SetPoint(4,-X_fclid/2.,-Y_fclid/2.,z_0-z_FC);
+	fcl->Draw();
 
 	// Draw SSD 
 	TPolyLine3D *ssd_surf = new TPolyLine3D(fc_points);
@@ -340,19 +351,21 @@ int main(int argc, char** argv){
 	cout << "Flying " << N_Fr << " alpha particles " << N_Average << " times." << endl;
 
 	// BPM geometry parameters
-	double geometry[11];
-	geometry[0] = 13.0; // R_FC:Radius of FC
+	double geometry[14];
+	geometry[0] = 13.0/2.0; // R_FC:Radius of FC
 	geometry[1] = 105.8; // z_0:Position of FC bottom
-	geometry[2] = 15.0; // z_FC:Height of FC inner side
+	geometry[2] = 17.0; // z_FC:Height of FC inner side
 	geometry[3] = 20.251; // x_Am:X position of Am
 	geometry[4] = 7.512; // z_Am:Z position of Am
 	geometry[5] = 15.0*2.0*TMath::Pi()/360.0; // th_Am:tilt angle of Am
 	geometry[6] = 1.0; // R_Am:Radius of Am source
-	geometry[7] = 13.8; // R_SSD:Radius of SSD
+	geometry[7] = 13.8/2.0; // R_SSD:Radius of SSD
 	geometry[8] = 2.0 ; // H_SSD:Height of SSD case
-	geometry[9] = 20.0; // R_Box:Radius of hole in SSD Box
+	geometry[9] = 20.0/2.0; // R_Box:Radius of hole in SSD Box
 	geometry[10] = 3.1; // Z_Box:Z position of SSD Box surface
 	geometry[11] = 2.6; // x_SSD:X displacement of SSD wrt FC
+	geometry[12] = 22.; // X_fclid:X length of FC lid
+	geometry[13] = 26.; // Y_fclid:Y length of FC lid
 
 	c1->cd(1);
 
@@ -382,15 +395,15 @@ int main(int argc, char** argv){
 	// for case 1
 	double centerX = 0.0;
 	double centerY = 0.0;
-	double stdevX = 0.8;
-	double stdevY = 1.0;
+	double stdevX = 10.;
+	double stdevY = 10.;
 	normal_distribution<double> randx(centerX,stdevX);
 	normal_distribution<double> randy(centerY,stdevY);
 //	// for case 2
 //	normal_distribution<double> randx(0.,2.*geometry[0]);
 //	normal_distribution<double> randy(0.,2.*geometry[0]);
 //	uniform_real_distribution<double> randz(geometry[1]-geometry[2],geometry[1]);
-//	// for case 3
+//	// for case 4
 //	normal_distribution<double> randxi(0.,geometry[6]);
 //	normal_distribution<double> randyeta(0.,geometry[6]);
 
@@ -410,13 +423,21 @@ int main(int argc, char** argv){
 //			cout << "Start loop i = " << i+1 << endl;
 
 			// Particle generation for Case 1:
-			double z_M = geometry[1];
-			double x_M, y_M;
+			double x_M, y_M, z_M;
 			double M = 9999.;
-			while (M > geometry[0]){
+			bool outofbox = true;
+			while (outofbox){
 				x_M = randx(engine);
+				bool outx = (x_M < -geometry[12]/2.) || (x_M > geometry[12]/2.);
 				y_M = randy(engine);
+				bool outy = (y_M < -geometry[13]/2.) || (y_M > geometry[13]/2.);
 				M = TMath::Sqrt(x_M*x_M + y_M*y_M);
+				if (M < geometry[0]){
+					z_M = geometry[1];
+				}else{
+					z_M = geometry[1]-geometry[2];
+				}
+				outofbox = outx || outy;
 			}
 			double a_x = randnorm(engine);
 			double a_y = randnorm(engine);
@@ -443,8 +464,7 @@ int main(int argc, char** argv){
 //			sa = 2.*TMath::Pi()*(1. - TMath::Cos(alpha));
 //			// End Case 2
 
-
-//			// Particle generation for Case 3:
+//			// Particle generation for Case 4:
 //			double x_M, y_M, z_M;
 //			double M = 9999.;
 //			while (M > geometry[6]){
