@@ -173,7 +173,7 @@ int main(int argc, char** argv){
 	double stdevX = 5.0;
 	double centerY = 0.0;
 	double stdevY = 5.0;
-	double f_beam = 30.;
+	double f_beam = -1000.;
 	normal_distribution<double> randx(centerX,stdevX);
 	normal_distribution<double> randy(centerY,stdevY);
 
@@ -280,7 +280,7 @@ int main(int argc, char** argv){
 	l.SetTextSize(0.05);
 	l.DrawLatex(0.05,0.9,Form("Beam center : (#mu[x], #mu[y]) = (%g, %g) [mm]",centerX,centerY));
 	l.DrawLatex(0.05,0.8,Form("Beam spread : (#sigma[x], #sigma[y]) = (%g, %g) [mm]",stdevX,stdevY));
-	l.DrawLatex(0.05,0.7,Form("Beam focal distance : f = %g [mm]",TMath::Abs(f_beam)));
+	l.DrawLatex(0.05,0.7,Form("Beam focal distance : f = %g [mm]",f_beam));
 	l.DrawLatex(0.05,0.6,Form("%d particles flown %d times",N_Fr,N_Average));
 	l.DrawLatex(0.05,0.5,"Detected current ratio :");
 	l.DrawLatex(0.10,0.4,Form("FP_{up} : FP_{center} : FP_{down} = (%3.2f, %3.2f, %3.2f) [%%]",rat_up,rat_ce,rat_do));
