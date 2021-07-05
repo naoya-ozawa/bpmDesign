@@ -157,8 +157,8 @@ int main(int argc, char** argv){
 	TCanvas *c1 = new TCanvas();
 	c1->Divide(1,2);
 
-	int N_Fr = 100000;
-	int N_Average = 200;
+	int N_Fr = 5000;
+	int N_Average = 100;
 
 	// FC geometry parameters
 	double geometry[5];
@@ -284,7 +284,6 @@ int main(int argc, char** argv){
 	l.DrawLatex(0.05,0.6,Form("%d particles flown %d times",N_Fr,N_Average));
 	l.DrawLatex(0.05,0.5,"Detected current ratio :");
 	l.DrawLatex(0.10,0.4,Form("FP_{up} : FP_{center} : FP_{down} = (%3.2f, %3.2f, %3.2f) [%%]",rat_up,rat_ce,rat_do));
-
 
 	c1->Update();
 	c1->Modified();
