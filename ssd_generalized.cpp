@@ -294,6 +294,7 @@ int main(int argc, char** argv){
 	TGraph2D *g_traj = new TGraph2D();
 	g_traj->SetName("traj");
 	g_traj->SetTitle("Simulated Particle Trajectories; x (mm); y (mm); z (mm)");
+	g_traj->SetMarkerStyle(20);
 
 	double detection = 0.0;
 	double detect_sq = 0.0;
@@ -311,16 +312,16 @@ int main(int argc, char** argv){
 	double az_mm = 0.0;
 
 	normal_distribution<double> randnorm(0.,1.);
-	// // for case 1 (from catcher)
-	// double centerX = geometry[2];
-	// double centerY = 0.0;
-	// double stdevX = 3.0;
-	// double stdevY = 3.0;
-	// normal_distribution<double> randx(centerX,stdevX);
-	// normal_distribution<double> randy(centerY,stdevY);
-	// for case 4 (from Am)
-	normal_distribution<double> randx(geometry[4],geometry[3]/4.);
-	normal_distribution<double> randy(0.,geometry[3]/4.);
+	// for case 1 (from catcher)
+	double centerX = geometry[2];
+	double centerY = 0.0;
+	double stdevX = 3.0;
+	double stdevY = 3.0;
+	normal_distribution<double> randx(centerX,stdevX);
+	normal_distribution<double> randy(centerY,stdevY);
+	// // for case 4 (from Am)
+	// normal_distribution<double> randx(geometry[4],geometry[3]/4.);
+	// normal_distribution<double> randy(0.,geometry[3]/4.);
 
 	for (int j = 0; j < N_Average; ++j){
 //		cout << "Start loop j = " << j+1 << endl;
@@ -337,42 +338,42 @@ int main(int argc, char** argv){
 		for (int i = 0; i < N_Fr; ++i){
 //			cout << "Start loop i = " << i+1 << endl;
 
-			// // Particle generation for Case 1 (catcher):
-			// double x_M, y_M, z_M;
-			// double M = 9999.;
-			// bool offtarget = true;
-			// while (offtarget){
-			// 	x_M = geometry[1];
-			// 	y_M = randy(engine);
-			// 	z_M = randx(engine);
-			// 	M = TMath::Sqrt((z_M-geometry[2])*(z_M-geometry[2]) + y_M*y_M);
-			// 	offtarget = (M >= geometry[0]);
-			// }
-			// double a_x = randnorm(engine);
-			// double a_y = randnorm(engine);
-			// double a_z = randnorm(engine);
-			// // Calculate approximate solid angle
-			// double alpha = TMath::ATan(geometry[6]/TMath::Sqrt(geometry[1]*geometry[1]+geometry[2]*geometry[2]));
-			// double beta = TMath::ATan(-geometry[2]/geometry[1]);
-			// sa = 2.*TMath::Pi()*(1. - TMath::Cos(alpha))*TMath::Sin(beta);
-			// // End Case 1
-
-			// Particle generation for Case 4:
-			double x_M, y_M;
-			double z_M = geometry[5];
+			// Particle generation for Case 1 (catcher):
+			double x_M, y_M, z_M;
 			double M = 9999.;
-			while (M > geometry[3]){
-				x_M = randx(engine);
+			bool offtarget = true;
+			while (offtarget){
+				x_M = geometry[1];
 				y_M = randy(engine);
-				M = TMath::Sqrt((x_M-geometry[4])*(x_M-geometry[4]) + y_M*y_M);
+				z_M = randx(engine);
+				M = TMath::Sqrt((z_M-geometry[2])*(z_M-geometry[2]) + y_M*y_M);
+				offtarget = (M >= geometry[0]);
 			}
 			double a_x = randnorm(engine);
 			double a_y = randnorm(engine);
 			double a_z = randnorm(engine);
 			// Calculate approximate solid angle
-			double alpha = TMath::ATan(geometry[6]/(TMath::Sqrt(geometry[5]*geometry[5] + geometry[4]*geometry[4])));
-			sa = 2.*TMath::Pi()*(1. - TMath::Cos(alpha));
-			// End Case 3
+			double alpha = TMath::ATan(geometry[6]/TMath::Sqrt(geometry[1]*geometry[1]+geometry[2]*geometry[2]));
+			double beta = TMath::ATan(-geometry[2]/geometry[1]);
+			sa = 2.*TMath::Pi()*(1. - TMath::Cos(alpha))*TMath::Sin(beta);
+			// End Case 1
+
+			// // Particle generation for Case 4:
+			// double x_M, y_M;
+			// double z_M = geometry[5];
+			// double M = 9999.;
+			// while (M > geometry[3]){
+			// 	x_M = randx(engine);
+			// 	y_M = randy(engine);
+			// 	M = TMath::Sqrt((x_M-geometry[4])*(x_M-geometry[4]) + y_M*y_M);
+			// }
+			// double a_x = randnorm(engine);
+			// double a_y = randnorm(engine);
+			// double a_z = randnorm(engine);
+			// // Calculate approximate solid angle
+			// double alpha = TMath::ATan(geometry[6]/(TMath::Sqrt(geometry[5]*geometry[5] + geometry[4]*geometry[4])));
+			// sa = 2.*TMath::Pi()*(1. - TMath::Cos(alpha));
+			// // End Case 3
 
 			x_mean += x_M;
 			x_sqmn += x_M*x_M;
@@ -429,14 +430,16 @@ int main(int argc, char** argv){
 // 				}else{
 // //					cout << "TRAJECTORY DRAWN" << endl;
 // 				}
-				TPolyLine3D *trajectory = new TPolyLine3D(-1);
-				trajectory->SetLineWidth(1);
-				trajectory->SetLineColor(2);
-				g_traj->SetPoint(2*(tot_detected-1),x_M,y_M,z_M);
-				trajectory->SetPoint(0,x_M,y_M,z_M);
-				g_traj->SetPoint(2*(tot_detected-1)+1,x_t,y_t,z_t);
-				trajectory->SetPoint(1,x_t,y_t,z_t);
-				trajectory->Draw();			
+				if (j==0){
+					TPolyLine3D *trajectory = new TPolyLine3D(-1);
+					trajectory->SetLineWidth(1);
+					trajectory->SetLineColor(2);
+					g_traj->SetPoint(2*(tot_detected-1),x_M,y_M,z_M);
+					trajectory->SetPoint(0,x_M,y_M,z_M);
+					g_traj->SetPoint(2*(tot_detected-1)+1,x_t,y_t,z_t);
+					trajectory->SetPoint(1,x_t,y_t,z_t);
+					trajectory->Draw();	
+				}
 			}
 			// Progress
 			cout << "\r" << 100.*double(j*N_Fr+(i+1))/double(N_Fr*N_Average) << "% completed...";
@@ -479,7 +482,7 @@ int main(int argc, char** argv){
 	ay_mm /= double(N_Average);
 	az_mm /= double(N_Average);
 
-	g_traj->Draw("SAME,P0,ah,fb,bb");
+	g_traj->Draw("SAME,PCOL,ah,fb,bb");
 	g_traj->GetXaxis()->SetLimits(-30.,geometry[3]+10.);
 	g_traj->GetYaxis()->SetLimits(-30.,30.);
 	g_traj->GetZaxis()->SetLimits(-5.,geometry[1]+5.);
