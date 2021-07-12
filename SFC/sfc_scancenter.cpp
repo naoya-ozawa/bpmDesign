@@ -1,5 +1,5 @@
 // Assuming a centralized symmetric gaussian beam,
-// scan the beam spread (sigma) and focal point f to plot the dependence of FP_ce on them
+// scan the beam spread (sigma) and focal point f to plot the dependence of FP_ce and FP_tot on them
 
 #include <iostream>
 #include <random>
@@ -86,7 +86,7 @@ int main(int argc, char** argv){
 	TRint rootapp("app",&argc,argv);
 
 	TCanvas *c1 = new TCanvas();
-	c1->Divide(1,2);
+	c1->Divide(2,2);
 
 	int N_Fr = 1000;
 	int N_Average = 100;
@@ -112,6 +112,11 @@ int main(int argc, char** argv){
 	g_traj->SetTitle("FP center hit ratio #frac{FP_{center}}{FP_{up}+FP_{center}+FP_{down}};Beam spread #sigma at FP up/down surface (mm);Beam focal point f wrt FP up/down surface (mm);FP center hit ratio (%)");
 	g_traj->SetMarkerStyle(20);
 	int g_traj_pt = 0;
+
+	TGraph2D *g_trajtot = new TGraph2D();
+	g_trajtot->SetName("trajtot");
+	g_trajtot->SetTitle("FP total hit ratio #frac{FP_{up}+FP_{center}+FP_{down}}{N_{Fr}};Beam spread #sigma at FP up/down surface (mm);Beam focal point f wrt FP up/down surface (mm);FP total hit ratio (%)");
+	g_trajtot->SetMarkerStyle(20);
 
 	for (int m = 0; m < 20; ++m){
 		stdevXY = 2.0 + double(m)*1.0;
@@ -171,7 +176,9 @@ int main(int argc, char** argv){
 			double N_count_err = TMath::Max(N_up_sd/N_up_me,TMath::Max(N_ce_sd/N_ce_me,N_do_sd/N_do_me));
 			if (N_count_err > 0.0001) cout << "^^^^^ WARNING: LARGE ERROR " << 100.*N_count_err << "% ^^^^^" << endl;
 			double rat_ce = 100. * N_ce_me / (N_up_me + N_ce_me + N_do_me);
+			double rat_tot = 100. * (N_up_me + N_ce_me + N_do_me) / double(N_Fr);
 			g_traj->SetPoint(g_traj_pt,stdevXY,f_beam,rat_ce);
+			g_trajtot->SetPoint(g_traj_pt,stdevXY,f_beam,rat_tot);
 			++g_traj_pt;
 
 			// Progress
@@ -183,13 +190,23 @@ int main(int argc, char** argv){
 	g_traj->Draw("SURF4");
 	g_traj->GetXaxis()->SetTitleOffset(1.8);
 
-
 	c1->cd(2);
+
+	g_trajtot->Draw("SURF4");
+	g_trajtot->GetXaxis()->SetTitleOffset(1.8);
+
+
+	c1->cd(3);
+
 
 	TGraphErrors *g_spread = new TGraphErrors();
 	g_spread->SetName("spread");
 	g_spread->SetTitle("FP center hit ratio #frac{FP_{center}}{FP_{up}+FP_{center}+FP_{down}} for laminar beam (f=-1000);Beam spread #sigma at FP up/down surface (mm);FP center hit ratio (%)");
 	int g_spread_pt = 0;
+
+	TGraphErrors *g_spreadtot = new TGraphErrors();
+	g_spreadtot->SetName("spreadtot");
+	g_spreadtot->SetTitle("FP total hit ratio #frac{FP_{up}+FP_{center}+FP_{down}}{N_{Fr}} for laminar beam (f=-1000);Beam spread #sigma at FP up/down surface (mm);FP center hit ratio (%)");
 
 	f_beam = -1000.;
 
@@ -250,12 +267,20 @@ int main(int argc, char** argv){
 		double N_tot_sd = TMath::Sqrt(N_up_sd*N_up_sd + N_ce_sd*N_ce_sd + N_do_sd*N_do_sd);
 		double rat_ce = 100. * N_ce_me / N_tot_me;
 		double rat_ce_err = rat_ce * TMath::Sqrt(TMath::Power(N_ce_sd/N_ce_me,2.) + TMath::Power(N_tot_sd/N_tot_me,2.));
+		double rat_tot = 100. * N_tot_me / double(N_Fr);
+		double rat_tot_err = 100. * N_tot_sd / double(N_Fr);
 		g_spread->SetPoint(g_spread_pt,stdevXY,rat_ce);
 		g_spread->SetPointError(g_spread_pt,0.,rat_ce_err);
+		g_spreadtot->SetPoint(g_spread_pt,stdevXY,rat_tot);
+		g_spreadtot->SetPointError(g_spread_pt,0.,rat_tot_err);
 		++g_spread_pt;
 	}
 
 	g_spread->Draw("ALP");
+
+	c1->cd(4);
+
+	g_spreadtot->Draw("ALP");
 
 	c1->Update();
 	c1->Modified();
